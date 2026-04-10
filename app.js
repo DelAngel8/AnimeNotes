@@ -263,6 +263,31 @@ function renderHero() {
     const rInfo = getRatingInfo(featured.rating);
     document.getElementById('heroRating').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${featured.rating} - ${rInfo.text} ${rInfo.icon}`;
     document.getElementById('heroType').textContent = featured.type;
+
+    const hEpisodes = document.getElementById('heroEpisodes');
+    if (featured.episodes) {
+        hEpisodes.innerHTML = `<i class="fa-solid fa-list-ol mr-1"></i> ${featured.episodes} Eps`;
+        hEpisodes.classList.remove('hidden');
+    } else {
+        hEpisodes.classList.add('hidden');
+    }
+
+    const hSeasons = document.getElementById('heroSeasons');
+    if (featured.seasons) {
+        hSeasons.innerHTML = `<i class="fa-solid fa-layer-group mr-1"></i> ${featured.seasons} ${featured.seasons == 1 ? 'Temp' : 'Temps'}`;
+        hSeasons.classList.remove('hidden');
+    } else {
+        hSeasons.classList.add('hidden');
+    }
+
+    const hSeason = document.getElementById('heroSeason');
+    if (featured.season) {
+        hSeason.innerHTML = `<i class="fa-solid fa-calendar mr-1"></i> ${featured.season}`;
+        hSeason.classList.remove('hidden');
+    } else {
+        hSeason.classList.add('hidden');
+    }
+
     document.getElementById('heroStatus').textContent = featured.status;
     document.getElementById('heroSynopsis').textContent = featured.synopsis;
 
@@ -352,36 +377,40 @@ function createGridContainer(title, animesList) {
         
         const card = document.createElement('div');
         // En modo Grid no forzamos un ancho fijo (w-44), dejamos que el grid maneje el responsive
-        card.className = 'anime-card relative rounded-md overflow-hidden aspect-[2/3] cursor-pointer bg-dark-800 shadow-lg';
+        card.className = 'anime-card aspect-[2/3] cursor-pointer shadow-lg';
         card.onclick = () => openDetailsModal(anime.id);
-        
+
         card.innerHTML = `
-            <img src="${anime.image}" alt="${anime.title}" class="w-full h-full object-cover">
-            
-            <div class="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-dark-900 to-transparent"></div>
-            
-            <div class="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
-                ${anime.type}
-            </div>
-
-            <div class="anime-card-overlay absolute inset-0 bg-dark-900/90 p-4 flex flex-col justify-center items-center text-center backdrop-blur-sm border-2 border-[#4338CA] rounded-md">
-                <h3 class="font-bold text-white mb-2 line-clamp-2 text-sm">${anime.title}</h3>
-                <div class="text-[#6366F1] font-bold mb-1 text-sm"><i class="fa-solid fa-star"></i> ${anime.rating}</div>
-                <div class="text-xs text-gray-300 font-semibold">${rInfo.text} <span class="ml-1">${rInfo.icon}</span></div>
-                
-                <div class="mt-4 flex gap-2">
-                     <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition">
-                        <i class="fa-solid fa-play text-xs"></i>
-                     </div>
-                     <div class="w-8 h-8 rounded-full border-2 border-gray-400 text-white flex items-center justify-center hover:border-white transition">
-                        <i class="fa-solid fa-info text-xs"></i>
-                     </div>
+            <div class="anime-card-inner absolute inset-0">
+                <img src="${anime.image}" alt="${anime.title}">
+                <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
+                <div class="card-type-badge absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
+                    ${anime.type}
                 </div>
-            </div>
-
-            <div class="absolute bottom-2 left-2 right-2">
-                <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
-                <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${anime.rating}</div>
+                <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
+                    <!-- Top: tipo y estudio -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${anime.type}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${anime.studio || ''}</span>
+                    </div>
+                    <!-- Bottom: info principal -->
+                    <div>
+                        <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${anime.title}</h3>
+                        <div class="flex items-center gap-2 mb-3 flex-wrap">
+                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${anime.rating}</span>
+                            <span class="text-gray-400 text-xs">·</span>
+                            <span class="text-gray-300 text-xs font-semibold">${rInfo.text} ${rInfo.icon}</span>
+                            ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${anime.episodes} eps</span>` : ''}
+                        </div>
+                        <div class="py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                            <i class="fa-solid fa-circle-info"></i> Más info
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
+                    <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
+                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${anime.rating}</div>
+                </div>
             </div>
         `;
         gridContainer.appendChild(card);
@@ -403,7 +432,7 @@ function createCarouselRow(title, animesList, rowId) {
             </button>
             
             <!-- Horizontal Scroll Container -->
-            <div id="${rowId}" class="carousel-container flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory px-4 pb-4 pt-2">
+            <div id="${rowId}" class="carousel-container flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory px-4 pb-8 pt-8">
             </div>
 
             <!-- Right Arrow -->
@@ -420,36 +449,40 @@ function createCarouselRow(title, animesList, rowId) {
         
         const card = document.createElement('div');
         // El ancho de cada tarjeta aumentado para que luzcan como un póster real
-        card.className = 'anime-card flex-none w-44 sm:w-48 md:w-56 lg:w-64 xl:w-72 relative rounded-md overflow-hidden aspect-[2/3] cursor-pointer bg-dark-800 shadow-lg snap-start';
+        card.className = 'anime-card flex-none w-44 sm:w-48 md:w-56 lg:w-64 xl:w-72 aspect-[2/3] cursor-pointer shadow-lg snap-start relative';
         card.onclick = () => openDetailsModal(anime.id);
-        
+
         card.innerHTML = `
-            <img src="${anime.image}" alt="${anime.title}" class="w-full h-full object-cover">
-            
-            <div class="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-dark-900 to-transparent"></div>
-            
-            <div class="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
-                ${anime.type}
-            </div>
-
-            <div class="anime-card-overlay absolute inset-0 bg-dark-900/90 p-4 flex flex-col justify-center items-center text-center backdrop-blur-sm border-2 border-[#4338CA] rounded-md">
-                <h3 class="font-bold text-white mb-2 line-clamp-2 text-sm">${anime.title}</h3>
-                <div class="text-[#6366F1] font-bold mb-1 text-sm"><i class="fa-solid fa-star"></i> ${anime.rating}</div>
-                <div class="text-xs text-gray-300 font-semibold">${rInfo.text} <span class="ml-1">${rInfo.icon}</span></div>
-                
-                <div class="mt-4 flex gap-2">
-                     <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition">
-                        <i class="fa-solid fa-play text-xs"></i>
-                     </div>
-                     <div class="w-8 h-8 rounded-full border-2 border-gray-400 text-white flex items-center justify-center hover:border-white transition">
-                        <i class="fa-solid fa-info text-xs"></i>
-                     </div>
+            <div class="anime-card-inner absolute inset-0">
+                <img src="${anime.image}" alt="${anime.title}">
+                <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
+                <div class="card-type-badge absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
+                    ${anime.type}
                 </div>
-            </div>
-
-            <div class="absolute bottom-2 left-2 right-2">
-                <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
-                <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${anime.rating}</div>
+                <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
+                    <!-- Top: tipo y estudio -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${anime.type}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${anime.studio || ''}</span>
+                    </div>
+                    <!-- Bottom: info principal -->
+                    <div>
+                        <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${anime.title}</h3>
+                        <div class="flex items-center gap-2 mb-3 flex-wrap">
+                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${anime.rating}</span>
+                            <span class="text-gray-400 text-xs">·</span>
+                            <span class="text-gray-300 text-xs font-semibold">${rInfo.text} ${rInfo.icon}</span>
+                            ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${anime.episodes} eps</span>` : ''}
+                        </div>
+                        <div class="py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                            <i class="fa-solid fa-circle-info"></i> Más info
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
+                    <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
+                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${anime.rating}</div>
+                </div>
             </div>
         `;
         carouselContainer.appendChild(card);
@@ -481,6 +514,9 @@ function openFormModal(id = null) {
             document.getElementById('type').value = anime.type;
             document.getElementById('studio').value = anime.studio || '';
             document.getElementById('status').value = anime.status;
+            document.getElementById('episodes').value = anime.episodes || '';
+            document.getElementById('seasons').value = anime.seasons || '';
+            document.getElementById('season').value = anime.season || '';
             document.getElementById('genres').value = anime.genres.join(', ');
             document.getElementById('rating').value = anime.rating;
             document.getElementById('synopsis').value = anime.synopsis;
@@ -508,6 +544,31 @@ function openDetailsModal(id) {
     document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${anime.rating} <span class="text-white ml-2">${rInfo.text} <span class="ml-1">${rInfo.icon}</span></span>`;
     
     document.getElementById('detailType').textContent = anime.type;
+
+    const dEpisodes = document.getElementById('detailEpisodes');
+    if (anime.episodes) {
+        dEpisodes.innerHTML = `<i class="fa-solid fa-list-ol mr-1"></i> ${anime.episodes} Eps`;
+        dEpisodes.classList.remove('hidden');
+    } else {
+        dEpisodes.classList.add('hidden');
+    }
+
+    const dSeasons = document.getElementById('detailSeasons');
+    if (anime.seasons) {
+        dSeasons.innerHTML = `<i class="fa-solid fa-layer-group mr-1"></i> ${anime.seasons} ${anime.seasons == 1 ? 'Temp' : 'Temps'}`;
+        dSeasons.classList.remove('hidden');
+    } else {
+        dSeasons.classList.add('hidden');
+    }
+
+    const dSeason = document.getElementById('detailSeason');
+    if (anime.season) {
+        dSeason.innerHTML = `<i class="fa-solid fa-calendar mr-1"></i> ${anime.season}`;
+        dSeason.classList.remove('hidden');
+    } else {
+        dSeason.classList.add('hidden');
+    }
+
     document.getElementById('detailStatus').textContent = anime.status;
     document.getElementById('detailStudio').textContent = anime.studio || 'Estudio Desconocido';
     
@@ -587,6 +648,9 @@ function setupEventListeners() {
             type: document.getElementById('type').value,
             studio: document.getElementById('studio').value.trim(),
             status: document.getElementById('status').value,
+            episodes: document.getElementById('episodes').value ? parseInt(document.getElementById('episodes').value) : null,
+            seasons: document.getElementById('seasons').value ? parseInt(document.getElementById('seasons').value) : null,
+            season: document.getElementById('season').value.trim(),
             genres: genresArray.length > 0 ? genresArray : ['Sin Clasificar'],
             rating: parseFloat(document.getElementById('rating').value),
             synopsis: document.getElementById('synopsis').value.trim(),

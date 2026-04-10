@@ -106,9 +106,12 @@
             
             <div class="absolute bottom-24 md:bottom-32 left-4 md:left-12 w-[90%] md:w-1/2 z-30">
                 <h2 id="heroTitle" class="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">Título</h2>
-                <div class="flex items-center gap-3 text-sm md:text-base mb-4 drop-shadow-md font-semibold">
+                <div class="flex items-center gap-3 text-sm md:text-base mb-4 drop-shadow-md font-semibold flex-wrap">
                     <span id="heroRating" class="text-green-400 font-bold"></span>
                     <span id="heroType" class="border border-gray-400 px-1 text-gray-300 text-xs">TV</span>
+                    <span id="heroEpisodes" class="text-gray-300 hidden"></span>
+                    <span id="heroSeasons" class="text-gray-300 hidden"></span>
+                    <span id="heroSeason" class="text-gray-300 hidden"></span>
                     <span id="heroStatus" class="text-gray-300">Finalizado</span>
                 </div>
                 <p id="heroSynopsis" class="text-gray-300 text-sm md:text-lg mb-6 line-clamp-3 md:line-clamp-4 drop-shadow-md">Sinopsis</p>
@@ -187,6 +190,21 @@
                             </select>
                         </div>
 
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-300">Total Episodios</label>
+                            <input type="number" id="episodes" min="1" class="w-full bg-dark-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500" placeholder="Ej: 24">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-300">Total Temporadas</label>
+                            <input type="number" id="seasons" min="1" class="w-full bg-dark-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500" placeholder="Ej: 3">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold mb-1 text-gray-300">Temporada / Año</label>
+                            <input type="text" id="season" class="w-full bg-dark-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500" placeholder="Ej: Otoño 2023">
+                        </div>
+
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-semibold mb-1 text-gray-300">Géneros (Separados por coma)</label>
                             <input type="text" id="genres" placeholder="Ej: Acción, Comedia, Drama" class="w-full bg-dark-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500">
@@ -238,6 +256,9 @@
                     <div class="flex flex-wrap items-center gap-2 md:gap-4 text-sm md:text-base font-semibold drop-shadow-md">
                         <span id="detailRatingText" class="text-brand-400"></span>
                         <span id="detailType" class="border border-gray-400 px-1 text-gray-300 text-xs">TV</span>
+                        <span id="detailEpisodes" class="text-gray-300 hidden"></span>
+                        <span id="detailSeasons" class="text-gray-300 hidden"></span>
+                        <span id="detailSeason" class="text-gray-300 hidden"></span>
                         <span id="detailStatus" class="text-gray-300">Finalizado</span>
                         <span id="detailStudio" class="text-gray-400 italic">Estudio</span>
                     </div>
