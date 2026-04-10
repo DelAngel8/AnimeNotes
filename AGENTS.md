@@ -25,3 +25,8 @@
 ## Convenciones de Git
 - Commits Convencionales (feat, fix, docs, refactor, style, chore).
 - Mensajes de commit claros y en el mismo idioma que el desarrollo.
+
+## Fuentes de Datos y Contenido (Anime)
+- Opciones de búsqueda de información e imágenes para cuando el usuario solicite agregar nuevos animes:
+  1. **Opción Primaria:** API de Jikan (MyAnimeList). Endpoint de búsqueda: `https://api.jikan.moe/v4/anime?q={titulo}`. Extraer el título, sinopsis, géneros, estudio, estado y la imagen de alta calidad desde `images.jpg.large_image_url`.
+  2. **Opción Secundaria:** TMDB (The Movie Database) o AniList. Utilizar solo si la API de Jikan falla o el anime no se encuentra disponible ahí.
