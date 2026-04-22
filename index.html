@@ -56,18 +56,24 @@
                         <span id="genreSelectedText" class="truncate max-w-[100px] text-left">Géneros</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
-                    <!-- Menú Géneros -->
-                    <div id="genreMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md">
+                    <!-- Menú Géneros (generado dinámicamente desde JS) -->
+                    <div id="genreMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-y-auto max-h-72 z-[60] flex-col py-2 backdrop-blur-md">
                         <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Acción', 'Acción')">Acción</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Aventura', 'Aventura')">Aventura</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Comedia', 'Comedia')">Comedia</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Drama', 'Drama')">Drama</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Fantasía', 'Fantasía')">Fantasía</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Romance', 'Romance')">Romance</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Sci-Fi', 'Sci-Fi')">Sci-Fi</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Slice of Life', 'Slice of L.')">Slice of Life</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'Thriller', 'Thriller')">Thriller</button>
+                    </div>
+                </div>
+
+                <!-- Orden Dropdown -->
+                <div class="relative flex items-center border-r border-indigo-900/50" id="sortFilterContainer">
+                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('sortMenu')">
+                        <i class="fa-solid fa-arrow-down-wide-short absolute left-3 text-gray-400 text-xs"></i>
+                        <span id="sortSelectedText" class="truncate max-w-[90px] text-left">Orden</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
+                    </button>
+                    <!-- Menú Orden -->
+                    <div id="sortMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md">
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('sort', 'default', 'Orden')">Por defecto</button>
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('sort', 'rating_desc', 'Mejor valorados')">Mejor valorados</button>
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('sort', 'rating_asc', 'Peor valorados')">Peor valorados</button>
                     </div>
                 </div>
 
@@ -78,16 +84,18 @@
                         <span id="typeSelectedText" class="truncate max-w-[90px] text-left">Formatos</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
-                    <!-- Menú Formatos -->
+                    <!-- Menú Formatos (generado dinámicamente desde JS) -->
                     <div id="typeMenu" class="hidden absolute top-[120%] right-0 w-40 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md">
                         <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'TV', 'TV')">TV</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'Película', 'Película')">Película</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'OVA', 'OVA')">OVA</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'Especial', 'Especial')">Especial</button>
                     </div>
                 </div>
             </div>
+
+            <button id="pendingBtn" class="relative bg-[#1E1B4B]/80 border border-indigo-900/50 hover:border-[#4338CA] text-gray-200 hover:text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Pendientes</span>
+                <span id="pendingCount" class="hidden bg-[#4338CA] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none"></span>
+            </button>
 
             <button id="addAnimeBtn" class="bg-[#4338CA] hover:bg-[#4f46e5] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 flex items-center transform hover:scale-105">
                 <i class="fa-solid fa-plus mr-2"></i> Añadir
@@ -133,6 +141,38 @@
                 <i class="fa-solid fa-ghost text-6xl mb-4 text-brand-500/50"></i>
                 <h2 class="text-2xl font-semibold text-white mb-2">No se encontraron animes</h2>
                 <p>Añade tu primer anime o ajusta los filtros de búsqueda.</p>
+            </div>
+        </div>
+
+        <!-- Pending View -->
+        <div id="pendingView" class="hidden px-4 md:px-12 pt-28 pb-12 min-h-screen">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <button onclick="closePendingView()" class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10">
+                        <i class="fa-solid fa-arrow-left text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-3xl font-black text-white">Lista de <span class="text-[#4338CA]">Pendientes</span></h2>
+                        <p class="text-gray-400 text-sm mt-1">Animes que quieres ver. Dales una nota cuando los termines.</p>
+                    </div>
+                </div>
+                <button onclick="openFormModal(null, true)" class="bg-[#4338CA] hover:bg-[#4f46e5] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2 transform hover:scale-105">
+                    <i class="fa-solid fa-plus"></i> Añadir pendiente
+                </button>
+            </div>
+
+            <!-- Grid -->
+            <div id="pendingGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+
+            <!-- Empty pending state -->
+            <div id="pendingEmptyState" class="hidden flex flex-col items-center justify-center py-24 text-gray-500">
+                <i class="fa-solid fa-check-circle text-6xl mb-4 text-green-500/40"></i>
+                <h2 class="text-2xl font-semibold text-white mb-2">Sin pendientes</h2>
+                <p class="mb-6">No tienes animes en tu lista de pendientes. ¡Todo al día!</p>
+                <button onclick="openFormModal(null, true)" class="bg-[#4338CA] hover:bg-[#4f46e5] text-white font-semibold py-2 px-6 rounded-full transition-all duration-200 flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Añadir pendiente
+                </button>
             </div>
         </div>
     </main>
@@ -297,7 +337,7 @@
                                     <i class="fa-solid fa-pen mr-2"></i> Editar Anime
                                 </button>
                                 <button id="btnDelete" class="border border-red-500/50 hover:bg-red-500/20 text-red-500 font-bold py-2 px-4 rounded transition flex items-center justify-center">
-                                    <i class="fa-solid fa-trash mr-2"></i> Borrar Proyecto
+                                    <i class="fa-solid fa-trash mr-2"></i> Borrar Anime
                                 </button>
                             </div>
                         </div>

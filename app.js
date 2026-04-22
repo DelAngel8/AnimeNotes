@@ -32,22 +32,63 @@ const demoData = [
     }
 ];
 
+// Mapa de géneros inglés → español (para normalizar datos externos de APIs)
+const GENRE_MAP = {
+    'Action':        'Acción',
+    'Adventure':     'Aventura',
+    'Comedy':        'Comedia',
+    'Drama':         'Drama',
+    'Fantasy':       'Fantasía',
+    'Horror':        'Terror',
+    'Mystery':       'Misterio',
+    'Romance':       'Romance',
+    'Sci-Fi':        'Sci-Fi',
+    'Science Fiction': 'Sci-Fi',
+    'Slice of Life': 'Slice of Life',
+    'Sports':        'Deportes',
+    'Supernatural':  'Sobrenatural',
+    'Thriller':      'Thriller',
+    'Ecchi':         'Ecchi',
+    'Mecha':         'Mecha',
+    'Music':         'Música',
+    'Psychological': 'Psicológico',
+    'Historical':    'Histórico',
+    'School':        'Escolar',
+    'Shounen':       'Shounen',
+    'Shoujo':        'Shoujo',
+    'Seinen':        'Seinen',
+};
+
+// Normaliza un género al español; si ya está en español o no está en el mapa, lo devuelve tal cual
+function normalizeGenre(genre) {
+    return GENRE_MAP[genre] || genre;
+}
+
 let animes = [];
 let filteredAnimes = [];
 let currentEditingId = null;
 let currentDetailId = null;
 let currentGenreFilter = 'all';
 let currentTypeFilter = 'all';
+let currentSortFilter = 'default';
 let heroInterval = null;
 let currentHeroIndex = 0;
+let isPendingView = false;
+
+// Un anime es "pendiente" si no tiene rating o su rating es 0
+function isPending(anime) {
+    return !anime.rating || parseFloat(anime.rating) === 0;
+}
 
 // --- CUSTOM DROPDOWNS ---
 function toggleDropdown(menuId) {
     const menu = document.getElementById(menuId);
     if (menu.classList.contains('hidden')) {
         // Cierra otros menus
-        document.getElementById('genreMenu').classList.add('hidden');
-        document.getElementById('typeMenu').classList.add('hidden');
+        ['genreMenu', 'sortMenu', 'typeMenu'].forEach(id => {
+            const m = document.getElementById(id);
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        });
         menu.classList.remove('hidden');
         menu.classList.add('flex');
     } else {
@@ -63,19 +104,27 @@ function selectFilter(filterType, value, label) {
     } else if (filterType === 'type') {
         currentTypeFilter = value;
         document.getElementById('typeSelectedText').textContent = label;
+    } else if (filterType === 'sort') {
+        currentSortFilter = value;
+        document.getElementById('sortSelectedText').textContent = label;
     }
     document.getElementById(filterType + 'Menu').classList.add('hidden');
     document.getElementById(filterType + 'Menu').classList.remove('flex');
     
     // Resetear el hero index al filtrar
     currentHeroIndex = 0;
-    renderApp();
+    if (isPendingView) {
+        renderPending();
+    } else {
+        renderApp();
+    }
 }
 
 // --- INICIALIZACIÓN ---
 async function init() {
     setupEventListeners();
     await loadData();
+    buildFilterMenus();
     renderApp();
 }
 
@@ -142,27 +191,49 @@ function generateId() {
 }
 
 function saveAnime(animeData) {
+    // Normalizar rating: si está vacío o es 0, queda como pendiente
+    const ratingVal = animeData.rating;
+    const normalizedRating = (ratingVal === '' || ratingVal === null || ratingVal === undefined || isNaN(ratingVal))
+        ? 0
+        : parseFloat(ratingVal);
+    const normalizedData = { ...animeData, rating: normalizedRating };
+
     if (currentEditingId) {
         // Actualizar
         const index = animes.findIndex(a => a.id === currentEditingId);
         if (index !== -1) {
-            animes[index] = { ...animes[index], ...animeData, updatedAt: Date.now() };
+            animes[index] = { ...animes[index], ...normalizedData, updatedAt: Date.now() };
         }
     } else {
         // Crear
-        animes.unshift({ ...animeData, id: generateId(), updatedAt: Date.now() });
+        animes.unshift({ ...normalizedData, id: generateId(), updatedAt: Date.now() });
     }
     saveData();
     closeModal('formModal');
-    renderApp();
+    buildFilterMenus();
+
+    // Si el anime ahora tiene nota y estábamos en pendientes, volver al catálogo
+    if (isPendingView && normalizedRating > 0) {
+        closePendingView();
+    } else if (isPendingView) {
+        renderPending();
+        updatePendingCount();
+    } else {
+        renderApp();
+    }
 }
 
 function deleteAnime(id) {
-    if (confirm('¿Estás seguro de que quieres borrar este proyecto?')) {
+    if (confirm('¿Estás seguro de que quieres borrar este anime?')) {
         animes = animes.filter(a => a.id !== id);
         saveData();
         closeModal('detailsModal');
-        renderApp();
+        if (isPendingView) {
+            renderPending();
+            updatePendingCount();
+        } else {
+            renderApp();
+        }
     }
 }
 
@@ -195,26 +266,187 @@ function updateRatingPreview() {
     }
 }
 
+// --- VISTA PENDIENTES ---
+function openPendingView() {
+    isPendingView = true;
+    // Cancelar el intervalo del hero para que no lo reactive después de ocultarlo
+    if (heroInterval) {
+        clearInterval(heroInterval);
+        heroInterval = null;
+    }
+    document.getElementById('heroSection').classList.add('hidden');
+    document.getElementById('catalogContainer').classList.add('hidden');
+    document.getElementById('pendingView').classList.remove('hidden');
+    document.getElementById('pendingBtn').classList.add('border-[#4338CA]', 'text-white');
+    renderPending();
+}
+
+function closePendingView() {
+    isPendingView = false;
+    document.getElementById('pendingView').classList.add('hidden');
+    document.getElementById('catalogContainer').classList.remove('hidden');
+    document.getElementById('pendingBtn').classList.remove('border-[#4338CA]', 'text-white');
+    renderApp();
+}
+
+function updatePendingCount() {
+    const count = animes.filter(isPending).length;
+    const badge = document.getElementById('pendingCount');
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+    }
+}
+
+function renderPending() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const pendingAnimes = animes
+        .filter(isPending)
+        .filter(anime => {
+            const matchSearch = !search ||
+                anime.title.toLowerCase().includes(search) ||
+                anime.genres.join(' ').toLowerCase().includes(search) ||
+                (anime.studio && anime.studio.toLowerCase().includes(search));
+            const matchType = currentTypeFilter === 'all' || anime.type === currentTypeFilter;
+            const matchGenre = currentGenreFilter === 'all' ||
+                (anime.genres && anime.genres.map(normalizeGenre).includes(currentGenreFilter));
+            return matchSearch && matchType && matchGenre;
+        })
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+    const grid = document.getElementById('pendingGrid');
+    const emptyState = document.getElementById('pendingEmptyState');
+
+    grid.innerHTML = '';
+
+    if (pendingAnimes.length === 0) {
+        grid.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+        return;
+    }
+
+    grid.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    emptyState.classList.remove('flex');
+
+    pendingAnimes.forEach(anime => {
+        const card = createPendingCard(anime);
+        grid.appendChild(card);
+    });
+}
+
+function createPendingCard(anime) {
+    const card = document.createElement('div');
+    card.className = 'anime-card aspect-[2/3] cursor-pointer shadow-lg';
+    card.onclick = () => openDetailsModal(anime.id);
+
+    card.innerHTML = `
+        <div class="anime-card-inner absolute inset-0">
+            <img src="${anime.image}" alt="${anime.title}">
+            <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
+            <!-- Badge "Pendiente" en lugar del tipo -->
+            <div class="card-type-badge absolute top-2 right-2 bg-[#4338CA]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-indigo-400/40">
+                <i class="fa-solid fa-clock mr-1"></i>${anime.type}
+            </div>
+            <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
+                <!-- Top: tipo y estudio -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${anime.type}</span>
+                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${anime.studio || ''}</span>
+                </div>
+                <!-- Bottom: info principal -->
+                <div>
+                    <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${anime.title}</h3>
+                    <div class="flex items-center gap-2 mb-3 flex-wrap">
+                        <span class="text-gray-400 text-xs font-semibold"><i class="fa-solid fa-clock mr-1 text-indigo-400"></i>Sin calificar</span>
+                        ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${anime.episodes} eps</span>` : ''}
+                    </div>
+                    <button onclick="event.stopPropagation(); openFormModal('${anime.id}')" class="w-full py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                        <i class="fa-solid fa-star"></i> Calificar
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
+                <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
+                <div class="text-xs text-indigo-400 font-bold drop-shadow-md"><i class="fa-solid fa-clock mr-1"></i>Pendiente</div>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+// --- FILTROS DINÁMICOS ---
+function buildFilterMenus() {
+    const btnClass = 'text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors';
+
+    // --- Géneros: extraer todos los géneros únicos normalizados de TODOS los animes ---
+    const allGenres = new Set();
+    animes.forEach(a => {
+        if (a.genres) a.genres.forEach(g => allGenres.add(normalizeGenre(g)));
+    });
+
+    const genreMenu = document.getElementById('genreMenu');
+    // Conservar solo el primer botón "Todos los géneros"
+    genreMenu.innerHTML = `<button class="${btnClass}" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>`;
+    Array.from(allGenres).sort().forEach(genre => {
+        const label = genre.length > 12 ? genre.slice(0, 10) + '.' : genre;
+        const btn = document.createElement('button');
+        btn.className = btnClass;
+        btn.onclick = () => selectFilter('genre', genre, label);
+        btn.textContent = genre;
+        genreMenu.appendChild(btn);
+    });
+
+    // --- Tipos: extraer todos los tipos únicos de TODOS los animes ---
+    const allTypes = new Set();
+    animes.forEach(a => { if (a.type) allTypes.add(a.type); });
+
+    const typeMenu = document.getElementById('typeMenu');
+    typeMenu.innerHTML = `<button class="${btnClass}" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>`;
+    Array.from(allTypes).sort().forEach(type => {
+        const btn = document.createElement('button');
+        btn.className = btnClass;
+        btn.onclick = () => selectFilter('type', type, type);
+        btn.textContent = type;
+        typeMenu.appendChild(btn);
+    });
+}
+
 // --- RENDERIZADO (UI) ---
 function renderApp() {
     applyFilters();
     renderHero();
     renderCatalog();
+    updatePendingCount();
 }
 
 function applyFilters() {
     const search = document.getElementById('searchInput').value.toLowerCase();
 
     filteredAnimes = animes.filter(anime => {
+        // Excluir pendientes (sin nota o nota = 0) del catálogo principal
+        if (isPending(anime)) return false;
+
         const matchSearch = anime.title.toLowerCase().includes(search) || 
                             anime.genres.join(' ').toLowerCase().includes(search) || 
                             (anime.studio && anime.studio.toLowerCase().includes(search));
         
-        const matchGenre = currentGenreFilter === 'all' || anime.genres.includes(currentGenreFilter);
+        const matchGenre = currentGenreFilter === 'all' || 
+                            (anime.genres && anime.genres.map(normalizeGenre).includes(currentGenreFilter));
         const matchType = currentTypeFilter === 'all' || anime.type === currentTypeFilter;
 
         return matchSearch && matchGenre && matchType;
     });
+
+    if (currentSortFilter === 'rating_desc') {
+        filteredAnimes.sort((a, b) => b.rating - a.rating);
+    } else if (currentSortFilter === 'rating_asc') {
+        filteredAnimes.sort((a, b) => a.rating - b.rating);
+    }
 }
 
 function renderHero() {
@@ -319,15 +551,20 @@ function renderCatalog() {
     catalogRowsEl.classList.remove('hidden');
 
     const isFiltering = currentGenreFilter !== 'all' || currentTypeFilter !== 'all' || search !== '';
+    const isSorting = currentSortFilter !== 'default';
 
     if (isFiltering) {
-        // MODO GRID (Si hay algún filtro activo)
+        // MODO GRID (Si hay algún filtro de género, tipo o búsqueda activo)
         let title = 'Resultados de la búsqueda';
         if (currentGenreFilter !== 'all') title = currentGenreFilter;
         else if (currentTypeFilter !== 'all') title = `Formato: ${currentTypeFilter}`;
         if (search !== '') title = `Búsqueda: "${search}"`;
 
         catalogRowsEl.appendChild(createGridContainer(title, filteredAnimes));
+    } else if (isSorting) {
+        // MODO GRID SIN SEPARACIÓN (Solo filtro de orden activo, sin género/tipo/búsqueda)
+        const sortLabel = currentSortFilter === 'rating_desc' ? 'Mejor valorados' : 'Peor valorados';
+        catalogRowsEl.appendChild(createGridContainer(sortLabel, filteredAnimes));
     } else {
         // MODO CARRUSELES (Inicio por defecto sin filtros)
         // 1. Fila de "Recientes" (Max 10 ordenados por updatedAt o si no existe, como estén)
@@ -339,18 +576,18 @@ function renderCatalog() {
             catalogRowsEl.appendChild(createCarouselRow('Recientes', recents, 'row-recents'));
         }
 
-        // 2. Extraer los géneros únicos que existen en los resultados
+        // 2. Extraer los géneros únicos normalizados que existen en los resultados
         const allGenres = new Set();
         filteredAnimes.forEach(a => {
             if(a.genres) {
-                a.genres.forEach(g => allGenres.add(g));
+                a.genres.forEach(g => allGenres.add(normalizeGenre(g)));
             }
         });
 
         // 3. Crear una fila por cada género encontrado (Max 10 animes por género)
         Array.from(allGenres).sort().forEach((genre, index) => {
             const animesInGenre = [...filteredAnimes]
-                .filter(a => a.genres && a.genres.includes(genre))
+                .filter(a => a.genres && a.genres.map(normalizeGenre).includes(genre))
                 .sort((a, b) => b.rating - a.rating)
                 .slice(0, 10);
                 
@@ -501,7 +738,7 @@ function scrollCarousel(id, direction) {
 }
 
 // --- MODALES Y EVENTOS ---
-function openFormModal(id = null) {
+function openFormModal(id = null, asPending = false) {
     currentEditingId = id;
     const form = document.getElementById('animeForm');
     
@@ -518,13 +755,19 @@ function openFormModal(id = null) {
             document.getElementById('seasons').value = anime.seasons || '';
             document.getElementById('season').value = anime.season || '';
             document.getElementById('genres').value = anime.genres.join(', ');
-            document.getElementById('rating').value = anime.rating;
+            document.getElementById('rating').value = anime.rating || '';
             document.getElementById('synopsis').value = anime.synopsis;
             document.getElementById('review').value = anime.review || '';
         }
     } else {
-        document.getElementById('formTitle').textContent = 'Añadir Proyecto';
         form.reset();
+        if (asPending) {
+            document.getElementById('formTitle').textContent = 'Añadir Pendiente';
+            // Rating vacío = 0, queda como pendiente hasta que el usuario lo califique
+            document.getElementById('rating').value = '';
+        } else {
+            document.getElementById('formTitle').textContent = 'Añadir Anime';
+        }
     }
     
     updateRatingPreview();
@@ -540,8 +783,12 @@ function openDetailsModal(id) {
     document.getElementById('detailImage').style.backgroundImage = `url('${anime.image}')`;
     document.getElementById('detailTitle').textContent = anime.title;
     
-    const rInfo = getRatingInfo(anime.rating);
-    document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${anime.rating} <span class="text-white ml-2">${rInfo.text} <span class="ml-1">${rInfo.icon}</span></span>`;
+    if (isPending(anime)) {
+        document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-clock mr-1 text-indigo-400"></i> <span class="text-indigo-300">Sin calificar — Pendiente</span>`;
+    } else {
+        const rInfo = getRatingInfo(anime.rating);
+        document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${anime.rating} <span class="text-white ml-2">${rInfo.text} <span class="ml-1">${rInfo.icon}</span></span>`;
+    }
     
     document.getElementById('detailType').textContent = anime.type;
 
@@ -592,7 +839,15 @@ function openDetailsModal(id) {
     });
 
     // Botones de acción
-    document.getElementById('btnEdit').onclick = () => {
+    const btnEdit = document.getElementById('btnEdit');
+    if (isPending(anime)) {
+        btnEdit.innerHTML = '<i class="fa-solid fa-star mr-2"></i> Calificar';
+        btnEdit.className = 'bg-[#4338CA] hover:bg-[#4f46e5] text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
+    } else {
+        btnEdit.innerHTML = '<i class="fa-solid fa-pen mr-2"></i> Editar Anime';
+        btnEdit.className = 'bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
+    }
+    btnEdit.onclick = () => {
         closeModal('detailsModal');
         openFormModal(anime.id);
     };
@@ -624,8 +879,21 @@ function setupEventListeners() {
 
     // Filtros y Búsqueda
     document.getElementById('searchInput').addEventListener('input', () => {
-        currentHeroIndex = 0;
-        renderApp();
+        if (isPendingView) {
+            renderPending();
+        } else {
+            currentHeroIndex = 0;
+            renderApp();
+        }
+    });
+
+    // Botón Pendientes
+    document.getElementById('pendingBtn').addEventListener('click', () => {
+        if (isPendingView) {
+            closePendingView();
+        } else {
+            openPendingView();
+        }
     });
 
     // Botón Añadir
@@ -642,6 +910,7 @@ function setupEventListeners() {
         const genresInput = document.getElementById('genres').value;
         const genresArray = genresInput.split(',').map(g => g.trim()).filter(g => g !== '');
 
+        const ratingRaw = document.getElementById('rating').value;
         const animeData = {
             title: document.getElementById('title').value.trim(),
             image: document.getElementById('image').value.trim(),
@@ -652,12 +921,25 @@ function setupEventListeners() {
             seasons: document.getElementById('seasons').value ? parseInt(document.getElementById('seasons').value) : null,
             season: document.getElementById('season').value.trim(),
             genres: genresArray.length > 0 ? genresArray : ['Sin Clasificar'],
-            rating: parseFloat(document.getElementById('rating').value),
+            rating: ratingRaw !== '' ? parseFloat(ratingRaw) : 0,
             synopsis: document.getElementById('synopsis').value.trim(),
             review: document.getElementById('review').value.trim()
         };
 
         saveAnime(animeData);
+    });
+
+    // Recargar datos cuando la pestaña recupera el foco (para reflejar cambios externos al JSON)
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') {
+            await loadData();
+            if (isPendingView) {
+                renderPending();
+                updatePendingCount();
+            } else {
+                renderApp();
+            }
+        }
     });
 
     // Cerrar modal al hacer clic afuera (fondo oscuro) y dropdowns
@@ -671,6 +953,13 @@ function setupEventListeners() {
             if(genreMenu) {
                 genreMenu.classList.add('hidden');
                 genreMenu.classList.remove('flex');
+            }
+        }
+        if (!e.target.closest('#sortFilterContainer')) {
+            const sortMenu = document.getElementById('sortMenu');
+            if(sortMenu) {
+                sortMenu.classList.add('hidden');
+                sortMenu.classList.remove('flex');
             }
         }
         if (!e.target.closest('#typeFilterContainer')) {
