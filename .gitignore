@@ -29,6 +29,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Skill registry cache
+.atl/
+
 # OS generated files
 .DS_Store
 .DS_Store?

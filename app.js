@@ -1,3 +1,29 @@
+// --- UTILIDADES DE SEGURIDAD ---
+function escapeHTML(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+// Escape a URL for use inside CSS url('...') — escapes single quotes and backslashes
+function escapeCSSUrl(url) {
+    if (url == null) return '';
+    return String(url).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 // --- ALMACENAMIENTO Y ESTADO ---
 const STORAGE_KEY = 'animenotes_data';
 
@@ -62,6 +88,12 @@ const GENRE_MAP = {
 // Normaliza un género al español; si ya está en español o no está en el mapa, lo devuelve tal cual
 function normalizeGenre(genre) {
     return GENRE_MAP[genre] || genre;
+}
+
+// Ensure every anime has a genres array (defensive normalization for malformed data)
+function ensureGenres(anime) {
+    if (!Array.isArray(anime.genres)) anime.genres = [];
+    return anime;
 }
 
 let animes = [];
@@ -135,14 +167,14 @@ async function loadData() {
         if (response.ok) {
             const data = await response.json();
             if (data && data.length > 0) {
-                animes = data;
+                animes = data.map(ensureGenres);
                 // PARCHE: Eliminar las pruebas de los 10 animes viejos y cargar las 2 peliculas
                 if (animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
-                    animes = [...demoData];
+                    animes = [...demoData].map(ensureGenres);
                     saveData();
                 }
             } else {
-                animes = [...demoData];
+                animes = [...demoData].map(ensureGenres);
                 saveData();
             }
             return; // Salimos de la función si el servidor respondió bien
@@ -152,16 +184,23 @@ async function loadData() {
     }
 
     // Fallback si abres el index.html con doble clic sin el servidor
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-        animes = JSON.parse(data);
-        // PARCHE: Eliminar las pruebas de los 10 animes viejos y cargar las 2 peliculas
-        if (animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
-            animes = [...demoData];
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            animes = JSON.parse(data).map(ensureGenres);
+            // PARCHE: Eliminar las pruebas de los 10 animes viejos y cargar las 2 peliculas
+            if (animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
+                animes = [...demoData].map(ensureGenres);
+                saveData();
+            }
+        } else {
+            animes = [...demoData].map(ensureGenres);
             saveData();
         }
-    } else {
-        animes = [...demoData];
+    } catch (e) {
+        console.warn("localStorage corrupto. Limpiando y usando datos de demo.", e);
+        localStorage.removeItem(STORAGE_KEY);
+        animes = [...demoData].map(ensureGenres);
         saveData();
     }
 }
@@ -309,11 +348,11 @@ function renderPending() {
         .filter(anime => {
             const matchSearch = !search ||
                 anime.title.toLowerCase().includes(search) ||
-                anime.genres.join(' ').toLowerCase().includes(search) ||
+                (anime.genres || []).join(' ').toLowerCase().includes(search) ||
                 (anime.studio && anime.studio.toLowerCase().includes(search));
             const matchType = currentTypeFilter === 'all' || anime.type === currentTypeFilter;
             const matchGenre = currentGenreFilter === 'all' ||
-                (anime.genres && anime.genres.map(normalizeGenre).includes(currentGenreFilter));
+                ((anime.genres || []).map(normalizeGenre).includes(currentGenreFilter));
             return matchSearch && matchType && matchGenre;
         })
         .sort((a, b) => b.updatedAt - a.updatedAt);
@@ -346,32 +385,32 @@ function createPendingCard(anime) {
 
     card.innerHTML = `
         <div class="anime-card-inner absolute inset-0">
-            <img src="${anime.image}" alt="${anime.title}">
+            <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}">
             <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
             <!-- Badge "Pendiente" en lugar del tipo -->
             <div class="card-type-badge absolute top-2 right-2 bg-[#4338CA]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-indigo-400/40">
-                <i class="fa-solid fa-clock mr-1"></i>${anime.type}
+                <i class="fa-solid fa-clock mr-1"></i>${escapeHTML(anime.type)}
             </div>
             <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
                 <!-- Top: tipo y estudio -->
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${anime.type}</span>
-                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${anime.studio || ''}</span>
+                    <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
+                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(anime.studio)}</span>
                 </div>
                 <!-- Bottom: info principal -->
                 <div>
-                    <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${anime.title}</h3>
+                    <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${escapeHTML(anime.title)}</h3>
                     <div class="flex items-center gap-2 mb-3 flex-wrap">
                         <span class="text-gray-400 text-xs font-semibold"><i class="fa-solid fa-clock mr-1 text-indigo-400"></i>Sin calificar</span>
-                        ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${anime.episodes} eps</span>` : ''}
+                        ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${escapeHTML(anime.episodes)} eps</span>` : ''}
                     </div>
-                    <button onclick="event.stopPropagation(); openFormModal('${anime.id}')" class="w-full py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                    <button data-id="${escapeAttr(anime.id)}" onclick="event.stopPropagation(); openFormModal(this.dataset.id)" class="w-full py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
                         <i class="fa-solid fa-star"></i> Calificar
                     </button>
                 </div>
             </div>
             <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
-                <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
+                <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${escapeHTML(anime.title)}</h3>
                 <div class="text-xs text-indigo-400 font-bold drop-shadow-md"><i class="fa-solid fa-clock mr-1"></i>Pendiente</div>
             </div>
         </div>
@@ -432,11 +471,11 @@ function applyFilters() {
         if (isPending(anime)) return false;
 
         const matchSearch = anime.title.toLowerCase().includes(search) || 
-                            anime.genres.join(' ').toLowerCase().includes(search) || 
+                            (anime.genres || []).join(' ').toLowerCase().includes(search) || 
                             (anime.studio && anime.studio.toLowerCase().includes(search));
         
         const matchGenre = currentGenreFilter === 'all' || 
-                            (anime.genres && anime.genres.map(normalizeGenre).includes(currentGenreFilter));
+                            ((anime.genres || []).map(normalizeGenre).includes(currentGenreFilter));
         const matchType = currentTypeFilter === 'all' || anime.type === currentTypeFilter;
 
         return matchSearch && matchGenre && matchType;
@@ -486,19 +525,19 @@ function renderHero() {
     imageEl.style.opacity = 0;
     
     setTimeout(() => {
-        imageEl.style.backgroundImage = `url('${featured.image}')`;
+        imageEl.style.backgroundImage = `url('${escapeCSSUrl(featured.image)}')`;
         imageEl.style.opacity = 1;
     }, 500);
     
     document.getElementById('heroTitle').textContent = featured.title;
     
     const rInfo = getRatingInfo(featured.rating);
-    document.getElementById('heroRating').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${featured.rating} - ${rInfo.text} ${rInfo.icon}`;
+    document.getElementById('heroRating').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${escapeHTML(featured.rating)} - ${escapeHTML(rInfo.text)} ${rInfo.icon}`;
     document.getElementById('heroType').textContent = featured.type;
 
     const hEpisodes = document.getElementById('heroEpisodes');
     if (featured.episodes) {
-        hEpisodes.innerHTML = `<i class="fa-solid fa-list-ol mr-1"></i> ${featured.episodes} Eps`;
+        hEpisodes.innerHTML = `<i class="fa-solid fa-list-ol mr-1"></i> ${escapeHTML(featured.episodes)} Eps`;
         hEpisodes.classList.remove('hidden');
     } else {
         hEpisodes.classList.add('hidden');
@@ -506,7 +545,7 @@ function renderHero() {
 
     const hSeasons = document.getElementById('heroSeasons');
     if (featured.seasons) {
-        hSeasons.innerHTML = `<i class="fa-solid fa-layer-group mr-1"></i> ${featured.seasons} ${featured.seasons == 1 ? 'Temp' : 'Temps'}`;
+        hSeasons.innerHTML = `<i class="fa-solid fa-layer-group mr-1"></i> ${escapeHTML(featured.seasons)} ${featured.seasons == 1 ? 'Temp' : 'Temps'}`;
         hSeasons.classList.remove('hidden');
     } else {
         hSeasons.classList.add('hidden');
@@ -514,7 +553,7 @@ function renderHero() {
 
     const hSeason = document.getElementById('heroSeason');
     if (featured.season) {
-        hSeason.innerHTML = `<i class="fa-solid fa-calendar mr-1"></i> ${featured.season}`;
+        hSeason.innerHTML = `<i class="fa-solid fa-calendar mr-1"></i> ${escapeHTML(featured.season)}`;
         hSeason.classList.remove('hidden');
     } else {
         hSeason.classList.add('hidden');
@@ -603,7 +642,7 @@ function createGridContainer(title, animesList) {
     wrapper.className = 'w-full mb-8';
     
     wrapper.innerHTML = `
-        <h3 class="text-xl md:text-2xl font-bold mb-6 text-gray-200 px-2">${title}</h3>
+        <h3 class="text-xl md:text-2xl font-bold mb-6 text-gray-200 px-2">${escapeHTML(title)}</h3>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 px-2"></div>
     `;
 
@@ -619,25 +658,25 @@ function createGridContainer(title, animesList) {
 
         card.innerHTML = `
             <div class="anime-card-inner absolute inset-0">
-                <img src="${anime.image}" alt="${anime.title}">
+                <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}">
                 <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
                 <div class="card-type-badge absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
-                    ${anime.type}
+                    ${escapeHTML(anime.type)}
                 </div>
                 <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
                     <!-- Top: tipo y estudio -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${anime.type}</span>
-                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${anime.studio || ''}</span>
+                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(anime.studio)}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
-                        <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${anime.title}</h3>
+                        <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${escapeHTML(anime.title)}</h3>
                         <div class="flex items-center gap-2 mb-3 flex-wrap">
-                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${anime.rating}</span>
+                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${escapeHTML(anime.rating)}</span>
                             <span class="text-gray-400 text-xs">·</span>
-                            <span class="text-gray-300 text-xs font-semibold">${rInfo.text} ${rInfo.icon}</span>
-                            ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${anime.episodes} eps</span>` : ''}
+                            <span class="text-gray-300 text-xs font-semibold">${escapeHTML(rInfo.text)} ${rInfo.icon}</span>
+                            ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${escapeHTML(anime.episodes)} eps</span>` : ''}
                         </div>
                         <div class="py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
                             <i class="fa-solid fa-circle-info"></i> Más info
@@ -645,8 +684,8 @@ function createGridContainer(title, animesList) {
                     </div>
                 </div>
                 <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
-                    <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
-                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${anime.rating}</div>
+                    <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${escapeHTML(anime.title)}</h3>
+                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${escapeHTML(anime.rating)}</div>
                 </div>
             </div>
         `;
@@ -661,7 +700,7 @@ function createCarouselRow(title, animesList, rowId) {
     rowWrapper.className = 'w-full relative group';
     
     rowWrapper.innerHTML = `
-        <h3 class="text-xl md:text-2xl font-bold mb-4 text-gray-200 px-2">${title}</h3>
+        <h3 class="text-xl md:text-2xl font-bold mb-4 text-gray-200 px-2">${escapeHTML(title)}</h3>
         <div class="relative w-full">
             <!-- Left Arrow -->
             <button onclick="scrollCarousel('${rowId}', -1)" class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0F0F23] via-[#0F0F23]/80 to-transparent text-white z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-l-md group/btn">
@@ -691,25 +730,25 @@ function createCarouselRow(title, animesList, rowId) {
 
         card.innerHTML = `
             <div class="anime-card-inner absolute inset-0">
-                <img src="${anime.image}" alt="${anime.title}">
+                <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}">
                 <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
                 <div class="card-type-badge absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
-                    ${anime.type}
+                    ${escapeHTML(anime.type)}
                 </div>
                 <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
                     <!-- Top: tipo y estudio -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${anime.type}</span>
-                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${anime.studio || ''}</span>
+                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(anime.studio)}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
-                        <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${anime.title}</h3>
+                        <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${escapeHTML(anime.title)}</h3>
                         <div class="flex items-center gap-2 mb-3 flex-wrap">
-                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${anime.rating}</span>
+                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${escapeHTML(anime.rating)}</span>
                             <span class="text-gray-400 text-xs">·</span>
-                            <span class="text-gray-300 text-xs font-semibold">${rInfo.text} ${rInfo.icon}</span>
-                            ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${anime.episodes} eps</span>` : ''}
+                            <span class="text-gray-300 text-xs font-semibold">${escapeHTML(rInfo.text)} ${rInfo.icon}</span>
+                            ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${escapeHTML(anime.episodes)} eps</span>` : ''}
                         </div>
                         <div class="py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
                             <i class="fa-solid fa-circle-info"></i> Más info
@@ -717,8 +756,8 @@ function createCarouselRow(title, animesList, rowId) {
                     </div>
                 </div>
                 <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
-                    <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${anime.title}</h3>
-                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${anime.rating}</div>
+                    <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${escapeHTML(anime.title)}</h3>
+                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${escapeHTML(anime.rating)}</div>
                 </div>
             </div>
         `;
@@ -754,7 +793,7 @@ function openFormModal(id = null, asPending = false) {
             document.getElementById('episodes').value = anime.episodes || '';
             document.getElementById('seasons').value = anime.seasons || '';
             document.getElementById('season').value = anime.season || '';
-            document.getElementById('genres').value = anime.genres.join(', ');
+            document.getElementById('genres').value = (anime.genres || []).join(', ');
             document.getElementById('rating').value = anime.rating || '';
             document.getElementById('synopsis').value = anime.synopsis;
             document.getElementById('review').value = anime.review || '';
@@ -780,21 +819,21 @@ function openDetailsModal(id) {
     const anime = animes.find(a => a.id === id);
     if (!anime) return;
 
-    document.getElementById('detailImage').style.backgroundImage = `url('${anime.image}')`;
+    document.getElementById('detailImage').style.backgroundImage = `url('${escapeCSSUrl(anime.image)}')`;
     document.getElementById('detailTitle').textContent = anime.title;
     
     if (isPending(anime)) {
         document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-clock mr-1 text-indigo-400"></i> <span class="text-indigo-300">Sin calificar — Pendiente</span>`;
     } else {
         const rInfo = getRatingInfo(anime.rating);
-        document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${anime.rating} <span class="text-white ml-2">${rInfo.text} <span class="ml-1">${rInfo.icon}</span></span>`;
+        document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${escapeHTML(anime.rating)} <span class="text-white ml-2">${escapeHTML(rInfo.text)} <span class="ml-1">${rInfo.icon}</span></span>`;
     }
     
     document.getElementById('detailType').textContent = anime.type;
 
     const dEpisodes = document.getElementById('detailEpisodes');
     if (anime.episodes) {
-        dEpisodes.innerHTML = `<i class="fa-solid fa-list-ol mr-1"></i> ${anime.episodes} Eps`;
+        dEpisodes.innerHTML = `<i class="fa-solid fa-list-ol mr-1"></i> ${escapeHTML(anime.episodes)} Eps`;
         dEpisodes.classList.remove('hidden');
     } else {
         dEpisodes.classList.add('hidden');
@@ -802,7 +841,7 @@ function openDetailsModal(id) {
 
     const dSeasons = document.getElementById('detailSeasons');
     if (anime.seasons) {
-        dSeasons.innerHTML = `<i class="fa-solid fa-layer-group mr-1"></i> ${anime.seasons} ${anime.seasons == 1 ? 'Temp' : 'Temps'}`;
+        dSeasons.innerHTML = `<i class="fa-solid fa-layer-group mr-1"></i> ${escapeHTML(anime.seasons)} ${anime.seasons == 1 ? 'Temp' : 'Temps'}`;
         dSeasons.classList.remove('hidden');
     } else {
         dSeasons.classList.add('hidden');
@@ -810,7 +849,7 @@ function openDetailsModal(id) {
 
     const dSeason = document.getElementById('detailSeason');
     if (anime.season) {
-        dSeason.innerHTML = `<i class="fa-solid fa-calendar mr-1"></i> ${anime.season}`;
+        dSeason.innerHTML = `<i class="fa-solid fa-calendar mr-1"></i> ${escapeHTML(anime.season)}`;
         dSeason.classList.remove('hidden');
     } else {
         dSeason.classList.add('hidden');
@@ -831,7 +870,7 @@ function openDetailsModal(id) {
 
     const genresContainer = document.getElementById('detailGenres');
     genresContainer.innerHTML = '';
-    anime.genres.forEach(g => {
+    (anime.genres || []).forEach(g => {
         const span = document.createElement('span');
         span.className = 'bg-brand-600/30 border border-brand-500 text-brand-300 text-xs px-2 py-1 rounded-full font-semibold';
         span.textContent = g;
