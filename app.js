@@ -92,18 +92,22 @@ function normalizeGenre(genre) {
     return GENRE_MAP[genre] || genre;
 }
 
-// Ensure every anime has a genres array (defensive normalization for malformed data)
+// Ensure every anime has required fields (defensive normalization for malformed/legacy data)
 function ensureGenres(anime) {
     if (!Array.isArray(anime.genres)) anime.genres = [];
+    // Backwards compatibility: items without category are anime
+    if (!anime.category) anime.category = 'anime';
     return anime;
 }
 
 // Get subtitle text based on category (studio for anime, director/network for general)
 function getSubtitle(anime) {
     if (anime.category === 'general') {
+        const isMovie = anime.type === 'Película';
         const parts = [];
         if (anime.director) parts.push(anime.director);
         if (anime.network) parts.push(anime.network);
+        if (!isMovie && anime.seasons) parts.push(`${anime.seasons} temp`);
         return parts.join(' · ') || '';
     }
     return anime.studio || '';
@@ -112,11 +116,12 @@ function getSubtitle(anime) {
 // Get the info badge text based on category
 function getInfoBadge(anime) {
     if (anime.category === 'general') {
-        if (anime.director) return escapeHTML(anime.director);
-        if (anime.network) return escapeHTML(anime.network);
-        return '';
+        const parts = [];
+        if (anime.director) parts.push(anime.director);
+        if (anime.network) parts.push(anime.network);
+        return parts.join(' · ');
     }
-    return escapeHTML(anime.studio);
+    return anime.studio || '';
 }
 
 let animes = [];
@@ -619,8 +624,9 @@ function applyFilters() {
         // Excluir pendientes (sin nota o nota = 0) del catálogo principal
         if (isPending(anime)) return false;
 
-        // Filter by category (anime / general)
-        const matchCategory = currentCategoryFilter === 'all' || anime.category === currentCategoryFilter;
+        // Filter by category — treat missing category as 'anime' for backwards compatibility
+        const itemCategory = anime.category || 'anime';
+        const matchCategory = currentCategoryFilter === 'all' || itemCategory === currentCategoryFilter;
 
         const matchSearch = anime.title.toLowerCase().includes(search) || 
                             (anime.genres || []).join(' ').toLowerCase().includes(search) || 
@@ -1055,16 +1061,16 @@ function openDetailsModal(id) {
         genresContainer.appendChild(span);
     });
 
-    // Extra fields based on category
+    // Extra fields based on category and type
     const extraFieldsEl = document.getElementById('detailExtraFields');
     extraFieldsEl.innerHTML = '';
     
-    if (anime.category === 'general') {
+    const isMovie = anime.category === 'general' && anime.type === 'Película';
+    
+    if (anime.category === 'general' && isMovie) {
+        // Movie fields
         if (anime.director) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Director:</span> <span class="text-white">${escapeHTML(anime.director)}</span></div>`;
-        }
-        if (anime.network) {
-            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Plataforma:</span> <span class="text-white">${escapeHTML(anime.network)}</span></div>`;
         }
         if (anime.runtime) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Duración:</span> <span class="text-white">${escapeHTML(anime.runtime)} min</span></div>`;
@@ -1072,7 +1078,25 @@ function openDetailsModal(id) {
         if (anime.releaseYear) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Año:</span> <span class="text-white">${escapeHTML(anime.releaseYear)}</span></div>`;
         }
+    } else if (anime.category === 'general' && !isMovie) {
+        // Series fields
+        if (anime.director) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Creador:</span> <span class="text-white">${escapeHTML(anime.director)}</span></div>`;
+        }
+        if (anime.network) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Plataforma:</span> <span class="text-white">${escapeHTML(anime.network)}</span></div>`;
+        }
+        if (anime.episodes) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Episodios:</span> <span class="text-white">${escapeHTML(anime.episodes)}</span></div>`;
+        }
+        if (anime.seasons) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Temporadas:</span> <span class="text-white">${escapeHTML(anime.seasons)}</span></div>`;
+        }
+        if (anime.releaseYear) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Año:</span> <span class="text-white">${escapeHTML(anime.releaseYear)}</span></div>`;
+        }
     } else {
+        // Anime fields
         if (anime.studio) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Estudio:</span> <span class="text-white">${escapeHTML(anime.studio)}</span></div>`;
         }
@@ -1117,6 +1141,13 @@ function closeModal(modalId) {
 
 function updateFormFieldsVisibility() {
     const category = document.getElementById('category').value;
+    const type = document.getElementById('type').value;
+    
+    // Series (regardless of category) show episodes/seasons like anime
+    // Only movies show runtime and hide episodes/seasons
+    const isMovie = category === 'general' && type === 'Película';
+    const isSeries = type === 'Serie' || (category === 'anime' && !isMovie);
+    
     const studioGroup = document.getElementById('studioGroup');
     const directorGroup = document.getElementById('directorGroup');
     const networkGroup = document.getElementById('networkGroup');
@@ -1128,6 +1159,7 @@ function updateFormFieldsVisibility() {
     const statusGroup = document.getElementById('statusGroup');
 
     if (category === 'anime') {
+        // Anime: studio, episodes, seasons, season, status
         studioGroup.classList.remove('hidden');
         directorGroup.classList.add('hidden');
         networkGroup.classList.add('hidden');
@@ -1137,14 +1169,26 @@ function updateFormFieldsVisibility() {
         seasonsGroup.classList.remove('hidden');
         seasonGroup.classList.remove('hidden');
         statusGroup.classList.remove('hidden');
-    } else {
+    } else if (isMovie) {
+        // Movie: director, runtime, releaseYear — NO episodes/seasons/status
         studioGroup.classList.add('hidden');
         directorGroup.classList.remove('hidden');
-        networkGroup.classList.remove('hidden');
+        networkGroup.classList.add('hidden');
         runtimeGroup.classList.remove('hidden');
         releaseYearGroup.classList.remove('hidden');
         episodesGroup.classList.add('hidden');
         seasonsGroup.classList.add('hidden');
+        seasonGroup.classList.add('hidden');
+        statusGroup.classList.add('hidden');
+    } else {
+        // Series: director, network, episodes, seasons, releaseYear — NO status/studio/runtime
+        studioGroup.classList.add('hidden');
+        directorGroup.classList.remove('hidden');
+        networkGroup.classList.remove('hidden');
+        runtimeGroup.classList.add('hidden');
+        releaseYearGroup.classList.remove('hidden');
+        episodesGroup.classList.remove('hidden');
+        seasonsGroup.classList.remove('hidden');
         seasonGroup.classList.add('hidden');
         statusGroup.classList.add('hidden');
     }
@@ -1196,26 +1240,28 @@ function setupEventListeners() {
 
         const ratingRaw = document.getElementById('rating').value;
         const category = document.getElementById('category').value;
+        const type = document.getElementById('type').value;
+        const isMovie = category === 'general' && type === 'Película';
         
         const animeData = {
             title: document.getElementById('title').value.trim(),
             image: document.getElementById('image').value.trim(),
-            type: document.getElementById('type').value,
-            status: document.getElementById('status').value,
+            type: type,
+            status: category === 'anime' ? document.getElementById('status').value : null,
             genres: genresArray.length > 0 ? genresArray : ['Sin Clasificar'],
             rating: ratingRaw !== '' ? parseFloat(ratingRaw) : 0,
             synopsis: document.getElementById('synopsis').value.trim(),
             review: document.getElementById('review').value.trim(),
             category: category,
-            // Anime-specific fields
+            // Anime-specific fields (also for series)
             studio: category === 'anime' ? document.getElementById('studio').value.trim() : null,
-            episodes: category === 'anime' && document.getElementById('episodes').value ? parseInt(document.getElementById('episodes').value) : null,
-            seasons: category === 'anime' && document.getElementById('seasons').value ? parseInt(document.getElementById('seasons').value) : null,
+            episodes: !isMovie && document.getElementById('episodes').value ? parseInt(document.getElementById('episodes').value) : null,
+            seasons: !isMovie && document.getElementById('seasons').value ? parseInt(document.getElementById('seasons').value) : null,
             season: category === 'anime' ? document.getElementById('season').value.trim() : null,
             // General-specific fields
             director: category === 'general' ? document.getElementById('director').value.trim() : null,
             network: category === 'general' ? document.getElementById('network').value.trim() : null,
-            runtime: category === 'general' && document.getElementById('runtime').value ? parseInt(document.getElementById('runtime').value) : null,
+            runtime: isMovie && document.getElementById('runtime').value ? parseInt(document.getElementById('runtime').value) : null,
             releaseYear: category === 'general' && document.getElementById('releaseYear').value ? parseInt(document.getElementById('releaseYear').value) : null,
         };
 
@@ -1224,6 +1270,8 @@ function setupEventListeners() {
 
     // Category change listener
     document.getElementById('category').addEventListener('change', updateFormFieldsVisibility);
+    // Type change listener — affects field visibility for general content
+    document.getElementById('type').addEventListener('change', updateFormFieldsVisibility);
 
     // Recargar datos cuando la pestaña recupera el foco (para reflejar cambios externos al JSON)
     document.addEventListener('visibilitychange', async () => {
