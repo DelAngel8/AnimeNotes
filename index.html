@@ -15,15 +15,15 @@
                 extend: {
                     colors: {
                         brand: {
-                            400: '#6366F1', // Secondary
-                            500: '#4338CA', // Primary
-                            600: '#3730A3', // Darker primary
-                            900: '#1E1B4B', // Deep primary
+                            400: '#7e57c2', // Lavender accent
+                            500: '#82aaff', // Primary blue (Night Owl)
+                            600: '#5472b3', // Darker primary
+                            900: '#1d3b53', // Deep selection
                         },
                         dark: {
-                            900: '#0F0F23', // Background
-                            800: '#1E1B4B', // Cards / Modals
-                            700: '#312E81'  // Borders / Inputs / Hovers
+                            900: '#011627', // Background (Night Owl navy)
+                            800: '#0b1929', // Cards / Modals
+                            700: '#1d3b53'  // Borders / Inputs / Hovers
                         }
                     }
                 }
@@ -35,52 +35,52 @@
 <body class="bg-dark-900 text-white font-sans antialiased overflow-x-hidden min-h-screen flex flex-col">
 
     <!-- Navbar -->
-    <nav class="fixed top-0 w-full z-50 bg-gradient-to-b from-[#0F0F23] to-transparent transition-all duration-300 px-4 py-4 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4" id="navbar">
+    <nav class="fixed top-0 w-full z-50 bg-gradient-to-b from-[#011627] to-transparent transition-all duration-300 px-4 py-4 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4" id="navbar">
         <div class="flex items-center gap-8 w-full md:w-auto">
-            <h1 class="text-3xl font-black text-[#4338CA] tracking-tighter cursor-pointer" onclick="renderApp()">Media<span class="text-white">Notes</span></h1>
+            <h1 class="text-3xl font-black text-[#82aaff] tracking-tighter cursor-pointer" onclick="renderApp()">Media<span class="text-white">Notes</span></h1>
         </div>
         
         <div class="flex items-center gap-3 w-full md:w-auto flex-wrap justify-end">
             <!-- Search Pro Max -->
             <div class="relative group hidden sm:block w-full md:w-auto">
-                <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-[#4338CA] transition-colors"></i>
-                <input type="text" id="searchInput" placeholder="Títulos, géneros, estudios..." class="bg-[#1E1B4B]/80 border border-indigo-900/50 text-white pl-11 pr-4 py-2 rounded-full focus:bg-[#1E1B4B] focus:border-[#4338CA] focus:ring-2 focus:ring-[#4338CA]/30 outline-none transition-all duration-300 w-full md:w-48 focus:w-64 placeholder-gray-400 text-sm shadow-inner">
+                <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-[#82aaff] transition-colors"></i>
+                <input type="text" id="searchInput" placeholder="Títulos, géneros, estudios..." class="bg-[#0b1929]/80 border border-dark-700/50 text-white pl-11 pr-4 py-2 rounded-full focus:bg-[#0b1929] focus:border-[#82aaff] focus:ring-2 focus:ring-[#82aaff]/30 outline-none transition-all duration-300 w-full md:w-48 focus:w-64 placeholder-gray-400 text-sm shadow-inner">
             </div>
 
             <!-- Category Tabs: Todo | Anime | General -->
-            <div class="flex bg-[#1E1B4B]/80 border border-indigo-900/50 rounded-full shadow-inner overflow-hidden text-sm" id="categoryTabs">
+            <div class="flex bg-[#0b1929]/80 border border-dark-700/50 rounded-full shadow-inner overflow-hidden text-sm" id="categoryTabs">
                 <button class="category-tab active px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium" data-category="all" onclick="selectCategory('all')">Todo</button>
-                <button class="category-tab px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium border-l border-indigo-900/50" data-category="anime" onclick="selectCategory('anime')">Anime</button>
-                <button class="category-tab px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium border-l border-indigo-900/50" data-category="general" onclick="selectCategory('general')">General</button>
+                <button class="category-tab px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium border-l border-dark-700/50" data-category="anime" onclick="selectCategory('anime')">Anime</button>
+                <button class="category-tab px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium border-l border-dark-700/50" data-category="general" onclick="selectCategory('general')">General</button>
             </div>
 
             <!-- Custom Filters -->
-            <div class="flex bg-[#1E1B4B]/80 border border-indigo-900/50 rounded-full shadow-inner focus-within:border-[#4338CA] focus-within:ring-2 focus-within:ring-[#4338CA]/30 transition-all text-sm z-50">
+            <div class="flex bg-[#0b1929]/80 border border-dark-700/50 rounded-full shadow-inner focus-within:border-[#82aaff] focus-within:ring-2 focus-within:ring-[#82aaff]/30 transition-all text-sm z-50">
                 <!-- Géneros Dropdown -->
-                <div class="relative flex items-center border-r border-indigo-900/50" id="genreFilterContainer">
+                <div class="relative flex items-center border-r border-dark-700/50" id="genreFilterContainer">
                     <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('genreMenu')" aria-expanded="false" aria-haspopup="listbox">
                         <i class="fa-solid fa-layer-group absolute left-3 text-gray-400 text-xs"></i>
                         <span id="genreSelectedText" class="truncate max-w-[100px] text-left">Géneros</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
                     <!-- Menú Géneros (generado dinámicamente desde JS) -->
-                    <div id="genreMenu" class="hidden absolute top-[120%] left-0 w-56 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-y-auto max-h-96 z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Géneros">
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>
+                    <div id="genreMenu" class="hidden absolute top-[120%] left-0 w-56 bg-[#011627] border border-dark-700/50 rounded-xl shadow-2xl overflow-y-auto max-h-96 z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Géneros">
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#82aaff] hover:text-white transition-colors" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>
                     </div>
                 </div>
 
                 <!-- Orden Dropdown -->
-                <div class="relative flex items-center border-r border-indigo-900/50" id="sortFilterContainer">
+                <div class="relative flex items-center border-r border-dark-700/50" id="sortFilterContainer">
                     <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('sortMenu')" aria-expanded="false" aria-haspopup="listbox">
                         <i class="fa-solid fa-arrow-down-wide-short absolute left-3 text-gray-400 text-xs"></i>
                         <span id="sortSelectedText" class="truncate max-w-[90px] text-left">Orden</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
                     <!-- Menú Orden -->
-                    <div id="sortMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Orden">
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'default', 'Orden')">Por defecto</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'rating_desc', 'Mejor valorados')">Mejor valorados</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'rating_asc', 'Peor valorados')">Peor valorados</button>
+                    <div id="sortMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#011627] border border-dark-700/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Orden">
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#82aaff] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'default', 'Orden')">Por defecto</button>
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#82aaff] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'rating_desc', 'Mejor valorados')">Mejor valorados</button>
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#82aaff] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'rating_asc', 'Peor valorados')">Peor valorados</button>
                     </div>
                 </div>
 
@@ -92,19 +92,19 @@
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
                     <!-- Menú Formatos (generado dinámicamente desde JS) -->
-                    <div id="typeMenu" class="hidden absolute top-[120%] right-0 w-40 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Formatos">
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>
+                    <div id="typeMenu" class="hidden absolute top-[120%] right-0 w-40 bg-[#011627] border border-dark-700/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Formatos">
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#82aaff] hover:text-white transition-colors" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>
                     </div>
                 </div>
             </div>
 
-            <button id="pendingBtn" class="relative bg-[#1E1B4B]/80 border border-indigo-900/50 hover:border-[#4338CA] text-gray-200 hover:text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 flex items-center gap-2">
+            <button id="pendingBtn" class="relative bg-[#0b1929]/80 border border-dark-700/50 hover:border-[#82aaff] text-gray-200 hover:text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 flex items-center gap-2">
                 <i class="fa-solid fa-clock-rotate-left"></i>
                 <span>Pendientes</span>
-                <span id="pendingCount" class="hidden bg-[#4338CA] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none"></span>
+                <span id="pendingCount" class="hidden bg-[#82aaff] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none"></span>
             </button>
 
-            <button id="addAnimeBtn" class="bg-[#4338CA] hover:bg-[#4f46e5] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 flex items-center transform hover:scale-105">
+            <button id="addAnimeBtn" class="bg-[#82aaff] hover:bg-[#5472b3] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-brand-500/25 flex items-center transform hover:scale-105">
                 <i class="fa-solid fa-plus mr-2"></i> Añadir
             </button>
         </div>
@@ -161,11 +161,11 @@
                         <i class="fa-solid fa-arrow-left text-xl"></i>
                     </button>
                     <div>
-                        <h2 class="text-3xl font-black text-white">Lista de <span class="text-[#4338CA]">Pendientes</span></h2>
+                        <h2 class="text-3xl font-black text-white">Lista de <span class="text-[#82aaff]">Pendientes</span></h2>
                         <p class="text-gray-400 text-sm mt-1">Contenido que quieres ver. Dales una nota cuando lo termines.</p>
                     </div>
                 </div>
-                <button onclick="openFormModal(null, true)" class="bg-[#4338CA] hover:bg-[#4f46e5] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2 transform hover:scale-105">
+                <button onclick="openFormModal(null, true)" class="bg-[#82aaff] hover:bg-[#5472b3] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-brand-500/25 flex items-center gap-2 transform hover:scale-105">
                     <i class="fa-solid fa-plus"></i> Añadir pendiente
                 </button>
             </div>
@@ -178,7 +178,7 @@
                 <i class="fa-solid fa-check-circle text-6xl mb-4 text-green-500/40"></i>
                 <h2 class="text-2xl font-semibold text-white mb-2">Sin pendientes</h2>
                 <p class="mb-6">No tienes contenido en tu lista de pendientes. ¡Todo al día!</p>
-                <button onclick="openFormModal(null, true)" class="bg-[#4338CA] hover:bg-[#4f46e5] text-white font-semibold py-2 px-6 rounded-full transition-all duration-200 flex items-center gap-2">
+                <button onclick="openFormModal(null, true)" class="bg-[#82aaff] hover:bg-[#5472b3] text-white font-semibold py-2 px-6 rounded-full transition-all duration-200 flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i> Añadir pendiente
                 </button>
             </div>

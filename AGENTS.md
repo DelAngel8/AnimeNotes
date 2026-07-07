@@ -10,9 +10,14 @@
 - Python `http.server` para el backend local minimalista.
 
 ## Interfaz de Usuario (UI/UX)
-- Diseño estilo "Netflix Dark Theme"
-- Color principal de acento: Índigo (`#4338CA`) y Púrpura oscuro.
-- Background principal: `#0F0F23`.
+- Diseño estilo "Night Owl" (inspirado en el tema VS Code de Sarah Drasner).
+- Paleta de colores Night Owl:
+  - Background principal: `#011627` (navy profundo).
+  - Cards / Modals: `#0b1929` (navy ligeramente más claro).
+  - Bordes / Inputs / Hovers: `#1d3b53` (selección navy).
+  - Acento primario: `#82aaff` (azul brillante Night Owl).
+  - Acento secundario: `#7e57c2` (lavanda).
+  - Hover primario: `#5472b3` (azul más oscuro).
 - Modales (Ventanas flotantes) en lugar de múltiples páginas HTML.
 - Componentes interactivos usando `box-shadow` e interacciones suaves de `transition-all`.
 - Íconos nativos en formato SVG o FontAwesome, sin usar Emojis en la UI (excepto en las reseñas).

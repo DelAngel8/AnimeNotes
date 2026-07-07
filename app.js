@@ -412,7 +412,7 @@ function openPendingView() {
     document.getElementById('heroSection').classList.add('hidden');
     document.getElementById('catalogContainer').classList.add('hidden');
     document.getElementById('pendingView').classList.remove('hidden');
-    document.getElementById('pendingBtn').classList.add('border-[#4338CA]', 'text-white');
+    document.getElementById('pendingBtn').classList.add('border-[#82aaff]', 'text-white');
     renderPending();
 }
 
@@ -420,7 +420,7 @@ function closePendingView() {
     isPendingView = false;
     document.getElementById('pendingView').classList.add('hidden');
     document.getElementById('catalogContainer').classList.remove('hidden');
-    document.getElementById('pendingBtn').classList.remove('border-[#4338CA]', 'text-white');
+    document.getElementById('pendingBtn').classList.remove('border-[#82aaff]', 'text-white');
     renderApp();
 }
 
@@ -487,30 +487,30 @@ function createPendingCard(anime) {
             <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27450%27 fill=%27%231a1a2e%27%3E%3Crect width=%27300%27 height=%27450%27/%3E%3Ctext x=%27150%27 y=%27225%27 font-family=%27sans-serif%27 font-size=%2714%27 fill=%27%23666%27 text-anchor=%27middle%27%3ESin imagen%3C/text%3E%3C/svg%3E'">
             <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
             <!-- Badge "Pendiente" en lugar del tipo -->
-            <div class="card-type-badge absolute top-2 right-2 bg-[#4338CA]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-indigo-400/40">
+            <div class="card-type-badge absolute top-2 right-2 bg-[#82aaff]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-brand-400/40">
                 <i class="fa-solid fa-clock mr-1"></i>${escapeHTML(anime.type)}
             </div>
             <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
                 <!-- Top: tipo y estudio/director -->
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
+                    <span class="text-white text-xs font-semibold bg-[#5472b3]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
                     <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(getInfoBadge(anime))}</span>
                 </div>
                 <!-- Bottom: info principal -->
                 <div>
                     <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${escapeHTML(anime.title)}</h3>
                     <div class="flex items-center gap-2 mb-3 flex-wrap">
-                        <span class="text-gray-400 text-xs font-semibold"><i class="fa-solid fa-clock mr-1 text-indigo-400"></i>Sin calificar</span>
+                        <span class="text-gray-400 text-xs font-semibold"><i class="fa-solid fa-clock mr-1 text-brand-400"></i>Sin calificar</span>
                         ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${escapeHTML(anime.episodes)} eps</span>` : ''}
                     </div>
-                    <button data-id="${escapeAttr(anime.id)}" onclick="event.stopPropagation(); openFormModal(this.dataset.id)" class="w-full py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                    <button data-id="${escapeAttr(anime.id)}" onclick="event.stopPropagation(); openFormModal(this.dataset.id)" class="w-full py-2 rounded bg-[#5472b3] hover:bg-[#82aaff] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
                         <i class="fa-solid fa-star"></i> Calificar
                     </button>
                 </div>
             </div>
             <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
                 <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${escapeHTML(anime.title)}</h3>
-                <div class="text-xs text-indigo-400 font-bold drop-shadow-md"><i class="fa-solid fa-clock mr-1"></i>Pendiente</div>
+                <div class="text-xs text-brand-400 font-bold drop-shadow-md"><i class="fa-solid fa-clock mr-1"></i>Pendiente</div>
             </div>
         </div>
     `;
@@ -519,7 +519,7 @@ function createPendingCard(anime) {
 
 // --- FILTROS DINÁMICOS ---
 function buildFilterMenus() {
-    const btnClass = 'text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors';
+    const btnClass = 'text-left px-4 py-2 text-gray-300 hover:bg-[#82aaff] hover:text-white transition-colors';
     const headerClass = 'text-xs font-bold text-gray-500 uppercase tracking-wider px-4 pt-3 pb-1';
 
     // --- Géneros: extraer todos los géneros únicos normalizados ---
@@ -573,7 +573,7 @@ function buildFilterMenus() {
     if (remainingGenres.length > 0) {
         const expandBtn = document.createElement('button');
         expandBtn.id = 'genreExpandBtn';
-        expandBtn.className = `${btnClass} text-[#6366F1] font-semibold`;
+        expandBtn.className = `${btnClass} text-[#7e57c2] font-semibold`;
         expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver todos (${allGenres.length})`;
         expandBtn.onclick = () => expandGenreMenu();
         genreMenu.appendChild(expandBtn);
@@ -660,7 +660,7 @@ function buildFilterMenus() {
     if (secondaryTypes.length > 0) {
         const expandBtn = document.createElement('button');
         expandBtn.id = 'typeExpandBtn';
-        expandBtn.className = `${btnClass} text-[#6366F1] font-semibold`;
+        expandBtn.className = `${btnClass} text-[#7e57c2] font-semibold`;
         expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver más (${secondaryTypes.length})`;
         expandBtn.onclick = () => expandTypeMenu();
         typeMenu.appendChild(expandBtn);
@@ -938,26 +938,26 @@ function createGridContainer(title, animesList) {
                 <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
                     <!-- Top: tipo y estudio/director -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
+                        <span class="text-white text-xs font-semibold bg-[#5472b3]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
                         <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(getInfoBadge(anime))}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
                         <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${escapeHTML(anime.title)}</h3>
                         <div class="flex items-center gap-2 mb-3 flex-wrap">
-                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${escapeHTML(anime.rating)}</span>
+                            <span class="text-[#7e57c2] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${escapeHTML(anime.rating)}</span>
                             <span class="text-gray-400 text-xs">·</span>
                             <span class="text-gray-300 text-xs font-semibold">${escapeHTML(rInfo.text)} ${rInfo.icon}</span>
                             ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${escapeHTML(anime.episodes)} eps</span>` : ''}
                         </div>
-                        <div class="py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                        <div class="py-2 rounded bg-[#5472b3] hover:bg-[#82aaff] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
                             <i class="fa-solid fa-circle-info"></i> Más info
                         </div>
                     </div>
                 </div>
                 <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
                     <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${escapeHTML(anime.title)}</h3>
-                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${escapeHTML(anime.rating)}</div>
+                    <div class="text-xs text-[#7e57c2] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${escapeHTML(anime.rating)}</div>
                 </div>
             </div>
         `;
@@ -975,7 +975,7 @@ function createCarouselRow(title, animesList, rowId) {
         <h3 class="text-xl md:text-2xl font-bold mb-4 text-gray-200 px-2">${escapeHTML(title)}</h3>
         <div class="relative w-full">
             <!-- Left Arrow -->
-            <button onclick="scrollCarousel('${rowId}', -1)" class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0F0F23] via-[#0F0F23]/80 to-transparent text-white z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-l-md group/btn">
+            <button onclick="scrollCarousel('${rowId}', -1)" class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#011627] via-[#011627]/80 to-transparent text-white z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-l-md group/btn">
                 <i class="fa-solid fa-chevron-left text-3xl opacity-50 group-hover/btn:opacity-100 group-hover/btn:scale-125 transition-all duration-300 drop-shadow-lg"></i>
             </button>
             
@@ -984,7 +984,7 @@ function createCarouselRow(title, animesList, rowId) {
             </div>
 
             <!-- Right Arrow -->
-            <button onclick="scrollCarousel('${rowId}', 1)" class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#0F0F23] via-[#0F0F23]/80 to-transparent text-white z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-r-md group/btn">
+            <button onclick="scrollCarousel('${rowId}', 1)" class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#011627] via-[#011627]/80 to-transparent text-white z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-r-md group/btn">
                 <i class="fa-solid fa-chevron-right text-3xl opacity-50 group-hover/btn:opacity-100 group-hover/btn:scale-125 transition-all duration-300 drop-shadow-lg"></i>
             </button>
         </div>
@@ -1010,26 +1010,26 @@ function createCarouselRow(title, animesList, rowId) {
                 <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
                     <!-- Top: tipo y estudio/director -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
+                        <span class="text-white text-xs font-semibold bg-[#5472b3]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
                         <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(getInfoBadge(anime))}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
                         <h3 class="font-bold text-white text-base leading-tight line-clamp-2 mb-2">${escapeHTML(anime.title)}</h3>
                         <div class="flex items-center gap-2 mb-3 flex-wrap">
-                            <span class="text-[#6366F1] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${escapeHTML(anime.rating)}</span>
+                            <span class="text-[#7e57c2] font-bold text-sm"><i class="fa-solid fa-star text-xs"></i> ${escapeHTML(anime.rating)}</span>
                             <span class="text-gray-400 text-xs">·</span>
                             <span class="text-gray-300 text-xs font-semibold">${escapeHTML(rInfo.text)} ${rInfo.icon}</span>
                             ${anime.episodes ? `<span class="text-gray-400 text-xs">· ${escapeHTML(anime.episodes)} eps</span>` : ''}
                         </div>
-                        <div class="py-2 rounded bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                        <div class="py-2 rounded bg-[#5472b3] hover:bg-[#82aaff] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
                             <i class="fa-solid fa-circle-info"></i> Más info
                         </div>
                     </div>
                 </div>
                 <div class="card-footer absolute bottom-2 left-2 right-2 pointer-events-none">
                     <h3 class="font-bold text-white text-sm line-clamp-1 drop-shadow-md">${escapeHTML(anime.title)}</h3>
-                    <div class="text-xs text-[#6366F1] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${escapeHTML(anime.rating)}</div>
+                    <div class="text-xs text-[#7e57c2] font-bold drop-shadow-md"><i class="fa-solid fa-star mr-1"></i>${escapeHTML(anime.rating)}</div>
                 </div>
             </div>
         `;
@@ -1103,7 +1103,7 @@ function openDetailsModal(id) {
     document.getElementById('detailTitle').textContent = anime.title;
     
     if (isPending(anime)) {
-        document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-clock mr-1 text-indigo-400"></i> <span class="text-indigo-300">Sin calificar — Pendiente</span>`;
+        document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-clock mr-1 text-brand-400"></i> <span class="text-brand-500">Sin calificar — Pendiente</span>`;
     } else {
         const rInfo = getRatingInfo(anime.rating);
         document.getElementById('detailRatingText').innerHTML = `<i class="fa-solid fa-star mr-1"></i> ${escapeHTML(anime.rating)} <span class="text-white ml-2">${escapeHTML(rInfo.text)} <span class="ml-1">${rInfo.icon}</span></span>`;
@@ -1223,7 +1223,7 @@ function openDetailsModal(id) {
     const btnEdit = document.getElementById('btnEdit');
     if (isPending(anime)) {
         btnEdit.innerHTML = '<i class="fa-solid fa-star mr-2"></i> Calificar';
-        btnEdit.className = 'bg-[#4338CA] hover:bg-[#4f46e5] text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
+        btnEdit.className = 'bg-[#82aaff] hover:bg-[#5472b3] text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
     } else {
         btnEdit.innerHTML = '<i class="fa-solid fa-pen mr-2"></i> Editar';
         btnEdit.className = 'bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
