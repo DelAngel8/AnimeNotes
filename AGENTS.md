@@ -35,9 +35,18 @@
 
 ## Fuentes de Datos y Contenido (Películas y Series)
 - Opciones de búsqueda de información e imágenes para contenido general (películas, series de acción real, animación occidental):
-  1. **Opción Primaria:** TMDB API (The Movie Database). Endpoint de búsqueda: `https://api.jikan.moe/v4/` → NO, usar `https://api.themoviedb.org/3/search/movie?query={titulo}&api_key={key}` o `/search/tv?query={titulo}&api_key={key}`. Extraer: título, sinopsis, géneros, director (películas) o red/creador (series), duración, imagen de alta calidad desde `poster_path` (prefijo: `https://image.tmdb.org/t/p/w500`).
+  1. **Opción Primaria:** TMDB API (The Movie Database). Endpoint de búsqueda: `https://api.jikan.moe/v4/` → NO, usar `https://api.themoviedb.org/3/search/movie?query={titulo}&api_key={key}` o `/search/tv?query={titulo}&api_key={key}`. Extraer: título, sinopsis, géneros, director (películas) o red/creador (series), duración, imagen de alta calidad desde `poster_path` (prefijo: `https://image.tmdb.org/t/p/original` — NO usar `/w500/` que devuelve 404 en algunos paths).
   2. **Opción Secundaria:** OMDb API. Endpoint: `https://www.omdbapi.com/?t={titulo}&apikey={key}`. Utilizar solo si TMDB falla.
 - **Nota:** Se necesita una API key de TMDB (gratuita, registro en themoviedb.org) y opcionalmente de OMDb.
+
+## Regla de Extracción de URLs de Imagen (OBLIGATORIO)
+
+> **CAUSA RAÍZ DE IMÁGENES ROTAS**: Las URLs de imagen **siempre** se extraen del **campo JSON** de la respuesta de la API, **NUNCA** de HTML, scraping de páginas web, ni de URLs construidas manualmente.
+
+- **Jikan**: Extraer de `data[0].images.jpg.large_image_url`. Nunca de `<img>` en HTML.
+- **TMDB**: Extraer de `results[0].poster_path` y concatenar con `https://image.tmdb.org/t/p/original`. Nunca de meta tags, og:image, ni HTML.
+- **OMDb**: Extraer de `Poster` directamente de la respuesta JSON.
+- Si la URL viene de scraping web (no de JSON directo), **NO confiar en ella**. Re-verificar contra la respuesta de la API original.
 
 ## Flujo para Agregar Animes (OBLIGATORIO)
 

@@ -250,7 +250,81 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         except Exception as e:
             self.send_response(500)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": f"Internal server error: {e}"}).encode('utf-8'))
+
+    def do_PUT(self):
+        try:
+            content_length_header = self.headers.get('Content-Length')
+            if content_length_header is None:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"error": "Missing Content-Length header"}')
+                return
+
+            content_length = int(content_length_header)
+            if content_length > MAX_PAYLOAD_BYTES:
+                self.send_response(413)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"error": "Payload too large (max 1MB)"}')
+                return
+
+            post_data = self.rfile.read(content_length)
+
+            if self.path == '/api/anime':
+                try:
+                    update_data = json.loads(post_data.decode('utf-8'))
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"Invalid JSON: {e}"}).encode('utf-8'))
+                    return
+
+                if 'id' not in update_data or not isinstance(update_data['id'], str) or not update_data['id'].strip():
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(b'{"error": "PUT requires a non-empty string id"}')
+                    return
+
+                animes = []
+                if os.path.exists(DATA_FILE):
+                    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                        animes = json.load(f)
+
+                found = False
+                for i, a in enumerate(animes):
+                    if a.get('id') == update_data['id']:
+                        animes[i] = normalize_anime({**a, **update_data})
+                        found = True
+                        break
+
+                if not found:
+                    self.send_response(404)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"Item with id '{update_data['id']}' not found"}).encode('utf-8'))
+                    return
+
+                with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(animes, f, ensure_ascii=False, indent=2)
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(b'{"status": "updated"}')
+
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"error": f"Internal server error: {e}"}).encode('utf-8'))
 
@@ -262,7 +336,6 @@ if __name__ == "__main__":
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         print(f"Servidor iniciado. Tus datos se guardarán en la carpeta del proyecto.")
         print(f"Abre tu navegador en: http://localhost:{PORT}")
-        # Abre el navegador automáticamente después de 1 segundo
         Timer(1, open_browser).start()
         try:
             httpd.serve_forever()

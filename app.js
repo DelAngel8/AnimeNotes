@@ -436,7 +436,7 @@ function createPendingCard(anime) {
 
     card.innerHTML = `
         <div class="anime-card-inner absolute inset-0">
-            <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}">
+            <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27450%27 fill=%27%231a1a2e%27%3E%3Crect width=%27300%27 height=%27450%27/%3E%3Ctext x=%27150%27 y=%27225%27 font-family=%27sans-serif%27 font-size=%2714%27 fill=%27%23666%27 text-anchor=%27middle%27%3ESin imagen%3C/text%3E%3C/svg%3E'">
             <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
             <!-- Badge "Pendiente" en lugar del tipo -->
             <div class="card-type-badge absolute top-2 right-2 bg-[#4338CA]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-indigo-400/40">
@@ -829,7 +829,7 @@ function createGridContainer(title, animesList) {
 
         card.innerHTML = `
             <div class="anime-card-inner absolute inset-0">
-                <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}">
+                <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27450%27 fill=%27%231a1a2e%27%3E%3Crect width=%27300%27 height=%27450%27/%3E%3Ctext x=%27150%27 y=%27225%27 font-family=%27sans-serif%27 font-size=%2714%27 fill=%27%23666%27 text-anchor=%27middle%27%3ESin imagen%3C/text%3E%3C/svg%3E'">
                 <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
                 <div class="card-type-badge absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
                     ${escapeHTML(anime.type)}
@@ -901,7 +901,7 @@ function createCarouselRow(title, animesList, rowId) {
 
         card.innerHTML = `
             <div class="anime-card-inner absolute inset-0">
-                <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}">
+                <img src="${escapeAttr(anime.image)}" alt="${escapeAttr(anime.title)}" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27450%27 fill=%27%231a1a2e%27%3E%3Crect width=%27300%27 height=%27450%27/%3E%3Ctext x=%27150%27 y=%27225%27 font-family=%27sans-serif%27 font-size=%2714%27 fill=%27%23666%27 text-anchor=%27middle%27%3ESin imagen%3C/text%3E%3C/svg%3E'">
                 <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent"></div>
                 <div class="card-type-badge absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold border border-white/20">
                     ${escapeHTML(anime.type)}
