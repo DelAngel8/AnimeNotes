@@ -16,6 +16,10 @@ TYPE_MAP = {
     'ova': 'OVA',
     'ona': 'ONA',
     'especial': 'Especial',
+    'Serie': 'Serie',
+    'serie': 'Serie',
+    'movie': 'Película',
+    'Movie': 'Película',
 }
 
 STATUS_MAP = {
@@ -40,10 +44,19 @@ def normalize_anime(anime):
     s = anime.get('status', '')
     anime['status'] = STATUS_MAP.get(s, s)
 
+    # Asegurar category
+    if 'category' not in anime:
+        anime['category'] = 'anime'
+
+    # Asegurar updatedAt
+    if 'updatedAt' not in anime:
+        import time
+        anime['updatedAt'] = int(time.time() * 1000)
+
     return anime
 
 def validate_anime(data):
-    """Valida tipos y longitudes de campos del anime. Retorna (cleaned, error)."""
+    """Valida tipos y longitudes del item. Retorna (cleaned, error)."""
     if not isinstance(data, dict):
         return None, "Request body must be a JSON object"
 
@@ -55,6 +68,11 @@ def validate_anime(data):
         if len(val) > 500:
             return None, f"'{field}' exceeds max length of 500"
 
+    # Required category
+    category = data.get('category')
+    if category not in ('anime', 'general'):
+        return None, "'category' must be 'anime' or 'general'"
+
     # String fields
     str_fields = {
         'image': 2000,
@@ -64,6 +82,8 @@ def validate_anime(data):
         'season': 50,
         'synopsis': 5000,
         'review': 5000,
+        'director': 200,
+        'network': 200,
     }
     for field, max_len in str_fields.items():
         val = data.get(field)
@@ -74,7 +94,7 @@ def validate_anime(data):
                 return None, f"'{field}' exceeds max length of {max_len}"
 
     # Numeric fields
-    int_fields = ('episodes', 'seasons')
+    int_fields = ('episodes', 'seasons', 'runtime', 'releaseYear')
     for field in int_fields:
         val = data.get(field)
         if val is not None and val != '' and val != 0:

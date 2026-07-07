@@ -41,7 +41,8 @@ const demoData = [
         rating: 7.8,
         synopsis: "Tras el divorcio de sus padres, Koyomi de siete años decide vivir con su padre investigador de mundos paralelos. Pronto conoce a Shiori, la hija de otro investigador, y con el tiempo prometen casarse, pero todo cambia cuando sus padres deciden casarse entre ellos.",
         review: "Una historia muy interesante sobre mundos paralelos. Complementa a la otra película mostrando una línea temporal diferente.",
-        updatedAt: now - 1000
+        updatedAt: now - 1000,
+        category: "anime"
     },
     {
         id: "demo_boku_ga",
@@ -54,7 +55,8 @@ const demoData = [
         rating: 7.8,
         synopsis: "En un mundo donde la gente salta habitualmente entre mundos paralelos con pequeñas diferencias, Koyomi Takasaki es abordado por Kazune Takigawa, quien le revela que viene del mundo 85 donde ellos dos son amantes.",
         review: "Increíble cómo se entrelaza con la otra película. Dependiendo del orden en el que las veas la perspectiva cambia totalmente.",
-        updatedAt: now - 2000
+        updatedAt: now - 2000,
+        category: "anime"
     }
 ];
 
@@ -96,6 +98,27 @@ function ensureGenres(anime) {
     return anime;
 }
 
+// Get subtitle text based on category (studio for anime, director/network for general)
+function getSubtitle(anime) {
+    if (anime.category === 'general') {
+        const parts = [];
+        if (anime.director) parts.push(anime.director);
+        if (anime.network) parts.push(anime.network);
+        return parts.join(' · ') || '';
+    }
+    return anime.studio || '';
+}
+
+// Get the info badge text based on category
+function getInfoBadge(anime) {
+    if (anime.category === 'general') {
+        if (anime.director) return escapeHTML(anime.director);
+        if (anime.network) return escapeHTML(anime.network);
+        return '';
+    }
+    return escapeHTML(anime.studio);
+}
+
 let animes = [];
 let filteredAnimes = [];
 let currentEditingId = null;
@@ -103,6 +126,7 @@ let currentDetailId = null;
 let currentGenreFilter = 'all';
 let currentTypeFilter = 'all';
 let currentSortFilter = 'default';
+let currentCategoryFilter = 'all'; // 'all' | 'anime' | 'general'
 let heroInterval = null;
 let currentHeroIndex = 0;
 let isPendingView = false;
@@ -144,6 +168,23 @@ function selectFilter(filterType, value, label) {
     document.getElementById(filterType + 'Menu').classList.remove('flex');
     
     // Resetear el hero index al filtrar
+    currentHeroIndex = 0;
+    if (isPendingView) {
+        renderPending();
+    } else {
+        renderApp();
+    }
+}
+
+function selectCategory(category) {
+    currentCategoryFilter = category;
+    // Update active tab styling
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.category === category) {
+            tab.classList.add('active');
+        }
+    });
     currentHeroIndex = 0;
     if (isPendingView) {
         renderPending();
@@ -392,10 +433,10 @@ function createPendingCard(anime) {
                 <i class="fa-solid fa-clock mr-1"></i>${escapeHTML(anime.type)}
             </div>
             <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
-                <!-- Top: tipo y estudio -->
+                <!-- Top: tipo y estudio/director -->
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
-                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(anime.studio)}</span>
+                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${getInfoBadge(anime)}</span>
                 </div>
                 <!-- Bottom: info principal -->
                 <div>
@@ -421,17 +462,46 @@ function createPendingCard(anime) {
 // --- FILTROS DINÁMICOS ---
 function buildFilterMenus() {
     const btnClass = 'text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors';
+    const headerClass = 'text-xs font-bold text-gray-500 uppercase tracking-wider px-4 pt-3 pb-1';
 
-    // --- Géneros: extraer todos los géneros únicos normalizados de TODOS los animes ---
-    const allGenres = new Set();
+    // --- Géneros: extraer todos los géneros únicos normalizados ---
+    const animeGenres = new Set();
+    const generalGenres = new Set();
+    
     animes.forEach(a => {
-        if (a.genres) a.genres.forEach(g => allGenres.add(normalizeGenre(g)));
+        if (!a.genres) return;
+        a.genres.forEach(g => {
+            const normalized = normalizeGenre(g);
+            if (a.category === 'general') {
+                generalGenres.add(normalized);
+            } else {
+                animeGenres.add(normalized);
+            }
+        });
     });
 
+    // Merge all genres for the "all" view
+    const allGenres = new Set([...animeGenres, ...generalGenres]);
+    
+    // Sort genres by frequency (most common first)
+    const genreCount = {};
+    animes.forEach(a => {
+        if (!a.genres) return;
+        a.genres.forEach(g => {
+            const normalized = normalizeGenre(g);
+            genreCount[normalized] = (genreCount[normalized] || 0) + 1;
+        });
+    });
+    
+    const sortedGenres = Array.from(allGenres).sort((a, b) => (genreCount[b] || 0) - (genreCount[a] || 0));
+    const topGenres = sortedGenres.slice(0, 8);
+    const remainingGenres = sortedGenres.slice(8);
+
     const genreMenu = document.getElementById('genreMenu');
-    // Conservar solo el primer botón "Todos los géneros"
     genreMenu.innerHTML = `<button class="${btnClass}" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>`;
-    Array.from(allGenres).sort().forEach(genre => {
+    
+    // Top genres (always visible)
+    topGenres.forEach(genre => {
         const label = genre.length > 12 ? genre.slice(0, 10) + '.' : genre;
         const btn = document.createElement('button');
         btn.className = btnClass;
@@ -439,6 +509,71 @@ function buildFilterMenus() {
         btn.textContent = genre;
         genreMenu.appendChild(btn);
     });
+
+    // "Ver más" button if there are more than 8 genres
+    if (remainingGenres.length > 0) {
+        const expandBtn = document.createElement('button');
+        expandBtn.id = 'genreExpandBtn';
+        expandBtn.className = `${btnClass} text-[#6366F1] font-semibold`;
+        expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver todos (${allGenres.length})`;
+        expandBtn.onclick = () => expandGenreMenu();
+        genreMenu.appendChild(expandBtn);
+
+        // Hidden container for remaining genres
+        const extraContainer = document.createElement('div');
+        extraContainer.id = 'genreExtraContainer';
+        extraContainer.className = 'hidden flex-col';
+        
+        // Anime genres header (if any)
+        const animeOnly = remainingGenres.filter(g => animeGenres.has(g) && !generalGenres.has(g));
+        if (animeOnly.length > 0) {
+            const header = document.createElement('div');
+            header.className = headerClass;
+            header.textContent = 'Anime';
+            extraContainer.appendChild(header);
+            animeOnly.forEach(genre => {
+                const btn = document.createElement('button');
+                btn.className = btnClass;
+                btn.onclick = () => selectFilter('genre', genre, genre);
+                btn.textContent = genre;
+                extraContainer.appendChild(btn);
+            });
+        }
+
+        // General genres header (if any)
+        const generalOnly = remainingGenres.filter(g => generalGenres.has(g) && !animeGenres.has(g));
+        if (generalOnly.length > 0) {
+            const header = document.createElement('div');
+            header.className = headerClass;
+            header.textContent = 'Películas / Series';
+            extraContainer.appendChild(header);
+            generalOnly.forEach(genre => {
+                const btn = document.createElement('button');
+                btn.className = btnClass;
+                btn.onclick = () => selectFilter('genre', genre, genre);
+                btn.textContent = genre;
+                extraContainer.appendChild(btn);
+            });
+        }
+
+        // Shared genres in remaining
+        const shared = remainingGenres.filter(g => animeGenres.has(g) && generalGenres.has(g));
+        if (shared.length > 0) {
+            const header = document.createElement('div');
+            header.className = headerClass;
+            header.textContent = 'Compartidos';
+            extraContainer.appendChild(header);
+            shared.forEach(genre => {
+                const btn = document.createElement('button');
+                btn.className = btnClass;
+                btn.onclick = () => selectFilter('genre', genre, genre);
+                btn.textContent = genre;
+                extraContainer.appendChild(btn);
+            });
+        }
+
+        genreMenu.appendChild(extraContainer);
+    }
 
     // --- Tipos: extraer todos los tipos únicos de TODOS los animes ---
     const allTypes = new Set();
@@ -453,6 +588,20 @@ function buildFilterMenus() {
         btn.textContent = type;
         typeMenu.appendChild(btn);
     });
+}
+
+function expandGenreMenu() {
+    const extraContainer = document.getElementById('genreExtraContainer');
+    const expandBtn = document.getElementById('genreExpandBtn');
+    if (extraContainer && expandBtn) {
+        extraContainer.classList.toggle('hidden');
+        extraContainer.classList.toggle('flex');
+        if (extraContainer.classList.contains('hidden')) {
+            expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver todos`;
+        } else {
+            expandBtn.innerHTML = `<i class="fa-solid fa-minus mr-2 text-xs"></i>Ver menos`;
+        }
+    }
 }
 
 // --- RENDERIZADO (UI) ---
@@ -470,15 +619,20 @@ function applyFilters() {
         // Excluir pendientes (sin nota o nota = 0) del catálogo principal
         if (isPending(anime)) return false;
 
+        // Filter by category (anime / general)
+        const matchCategory = currentCategoryFilter === 'all' || anime.category === currentCategoryFilter;
+
         const matchSearch = anime.title.toLowerCase().includes(search) || 
                             (anime.genres || []).join(' ').toLowerCase().includes(search) || 
-                            (anime.studio && anime.studio.toLowerCase().includes(search));
+                            (anime.studio && anime.studio.toLowerCase().includes(search)) ||
+                            (anime.director && anime.director.toLowerCase().includes(search)) ||
+                            (anime.network && anime.network.toLowerCase().includes(search));
         
         const matchGenre = currentGenreFilter === 'all' || 
                             ((anime.genres || []).map(normalizeGenre).includes(currentGenreFilter));
         const matchType = currentTypeFilter === 'all' || anime.type === currentTypeFilter;
 
-        return matchSearch && matchGenre && matchType;
+        return matchSearch && matchGenre && matchType && matchCategory;
     });
 
     if (currentSortFilter === 'rating_desc') {
@@ -561,6 +715,12 @@ function renderHero() {
 
     document.getElementById('heroStatus').textContent = featured.status;
     document.getElementById('heroSynopsis').textContent = featured.synopsis;
+
+    // Show subtitle based on category
+    const heroStudio = document.getElementById('heroStudio');
+    if (heroStudio) {
+        heroStudio.textContent = getSubtitle(featured);
+    }
 
     document.getElementById('heroDetailsBtn').onclick = () => openDetailsModal(featured.id);
 
@@ -664,10 +824,10 @@ function createGridContainer(title, animesList) {
                     ${escapeHTML(anime.type)}
                 </div>
                 <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
-                    <!-- Top: tipo y estudio -->
+                    <!-- Top: tipo y estudio/director -->
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
-                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(anime.studio)}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${getInfoBadge(anime)}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
@@ -736,10 +896,10 @@ function createCarouselRow(title, animesList, rowId) {
                     ${escapeHTML(anime.type)}
                 </div>
                 <div class="anime-card-overlay absolute inset-0 rounded-md p-4 flex flex-col justify-between">
-                    <!-- Top: tipo y estudio -->
+                    <!-- Top: tipo y estudio/director -->
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
-                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(anime.studio)}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${getInfoBadge(anime)}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
@@ -782,7 +942,7 @@ function openFormModal(id = null, asPending = false) {
     const form = document.getElementById('animeForm');
     
     if (id) {
-        document.getElementById('formTitle').textContent = 'Editar Anime';
+        document.getElementById('formTitle').textContent = 'Editar Contenido';
         const anime = animes.find(a => a.id === id);
         if (anime) {
             document.getElementById('title').value = anime.title;
@@ -797,18 +957,26 @@ function openFormModal(id = null, asPending = false) {
             document.getElementById('rating').value = anime.rating || '';
             document.getElementById('synopsis').value = anime.synopsis;
             document.getElementById('review').value = anime.review || '';
+            // New fields
+            document.getElementById('director').value = anime.director || '';
+            document.getElementById('network').value = anime.network || '';
+            document.getElementById('runtime').value = anime.runtime || '';
+            document.getElementById('releaseYear').value = anime.releaseYear || '';
+            document.getElementById('category').value = anime.category || 'anime';
         }
     } else {
         form.reset();
+        document.getElementById('category').value = 'anime';
         if (asPending) {
             document.getElementById('formTitle').textContent = 'Añadir Pendiente';
             // Rating vacío = 0, queda como pendiente hasta que el usuario lo califique
             document.getElementById('rating').value = '';
         } else {
-            document.getElementById('formTitle').textContent = 'Añadir Anime';
+            document.getElementById('formTitle').textContent = 'Añadir Contenido';
         }
     }
     
+    updateFormFieldsVisibility();
     updateRatingPreview();
     document.getElementById('formModal').classList.remove('hidden');
     document.getElementById('formModal').classList.add('flex');
@@ -856,7 +1024,17 @@ function openDetailsModal(id) {
     }
 
     document.getElementById('detailStatus').textContent = anime.status;
-    document.getElementById('detailStudio').textContent = anime.studio || 'Estudio Desconocido';
+    
+    // Show studio for anime, director/network for general
+    const detailStudio = document.getElementById('detailStudio');
+    if (anime.category === 'general') {
+        const parts = [];
+        if (anime.director) parts.push(anime.director);
+        if (anime.network) parts.push(anime.network);
+        detailStudio.textContent = parts.join(' · ') || 'Desconocido';
+    } else {
+        detailStudio.textContent = anime.studio || 'Estudio Desconocido';
+    }
     
     document.getElementById('detailSynopsis').textContent = anime.synopsis;
     
@@ -877,13 +1055,45 @@ function openDetailsModal(id) {
         genresContainer.appendChild(span);
     });
 
+    // Extra fields based on category
+    const extraFieldsEl = document.getElementById('detailExtraFields');
+    extraFieldsEl.innerHTML = '';
+    
+    if (anime.category === 'general') {
+        if (anime.director) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Director:</span> <span class="text-white">${escapeHTML(anime.director)}</span></div>`;
+        }
+        if (anime.network) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Plataforma:</span> <span class="text-white">${escapeHTML(anime.network)}</span></div>`;
+        }
+        if (anime.runtime) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Duración:</span> <span class="text-white">${escapeHTML(anime.runtime)} min</span></div>`;
+        }
+        if (anime.releaseYear) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Año:</span> <span class="text-white">${escapeHTML(anime.releaseYear)}</span></div>`;
+        }
+    } else {
+        if (anime.studio) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Estudio:</span> <span class="text-white">${escapeHTML(anime.studio)}</span></div>`;
+        }
+        if (anime.episodes) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Episodios:</span> <span class="text-white">${escapeHTML(anime.episodes)}</span></div>`;
+        }
+        if (anime.seasons) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Temporadas:</span> <span class="text-white">${escapeHTML(anime.seasons)}</span></div>`;
+        }
+        if (anime.season) {
+            extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Temporada:</span> <span class="text-white">${escapeHTML(anime.season)}</span></div>`;
+        }
+    }
+
     // Botones de acción
     const btnEdit = document.getElementById('btnEdit');
     if (isPending(anime)) {
         btnEdit.innerHTML = '<i class="fa-solid fa-star mr-2"></i> Calificar';
         btnEdit.className = 'bg-[#4338CA] hover:bg-[#4f46e5] text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
     } else {
-        btnEdit.innerHTML = '<i class="fa-solid fa-pen mr-2"></i> Editar Anime';
+        btnEdit.innerHTML = '<i class="fa-solid fa-pen mr-2"></i> Editar';
         btnEdit.className = 'bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center';
     }
     btnEdit.onclick = () => {
@@ -903,6 +1113,41 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+}
+
+function updateFormFieldsVisibility() {
+    const category = document.getElementById('category').value;
+    const studioGroup = document.getElementById('studioGroup');
+    const directorGroup = document.getElementById('directorGroup');
+    const networkGroup = document.getElementById('networkGroup');
+    const runtimeGroup = document.getElementById('runtimeGroup');
+    const releaseYearGroup = document.getElementById('releaseYearGroup');
+    const episodesGroup = document.getElementById('episodesGroup');
+    const seasonsGroup = document.getElementById('seasonsGroup');
+    const seasonGroup = document.getElementById('seasonGroup');
+    const statusGroup = document.getElementById('statusGroup');
+
+    if (category === 'anime') {
+        studioGroup.classList.remove('hidden');
+        directorGroup.classList.add('hidden');
+        networkGroup.classList.add('hidden');
+        runtimeGroup.classList.add('hidden');
+        releaseYearGroup.classList.add('hidden');
+        episodesGroup.classList.remove('hidden');
+        seasonsGroup.classList.remove('hidden');
+        seasonGroup.classList.remove('hidden');
+        statusGroup.classList.remove('hidden');
+    } else {
+        studioGroup.classList.add('hidden');
+        directorGroup.classList.remove('hidden');
+        networkGroup.classList.remove('hidden');
+        runtimeGroup.classList.remove('hidden');
+        releaseYearGroup.classList.remove('hidden');
+        episodesGroup.classList.add('hidden');
+        seasonsGroup.classList.add('hidden');
+        seasonGroup.classList.add('hidden');
+        statusGroup.classList.add('hidden');
+    }
 }
 
 function setupEventListeners() {
@@ -950,23 +1195,35 @@ function setupEventListeners() {
         const genresArray = genresInput.split(',').map(g => g.trim()).filter(g => g !== '');
 
         const ratingRaw = document.getElementById('rating').value;
+        const category = document.getElementById('category').value;
+        
         const animeData = {
             title: document.getElementById('title').value.trim(),
             image: document.getElementById('image').value.trim(),
             type: document.getElementById('type').value,
-            studio: document.getElementById('studio').value.trim(),
             status: document.getElementById('status').value,
-            episodes: document.getElementById('episodes').value ? parseInt(document.getElementById('episodes').value) : null,
-            seasons: document.getElementById('seasons').value ? parseInt(document.getElementById('seasons').value) : null,
-            season: document.getElementById('season').value.trim(),
             genres: genresArray.length > 0 ? genresArray : ['Sin Clasificar'],
             rating: ratingRaw !== '' ? parseFloat(ratingRaw) : 0,
             synopsis: document.getElementById('synopsis').value.trim(),
-            review: document.getElementById('review').value.trim()
+            review: document.getElementById('review').value.trim(),
+            category: category,
+            // Anime-specific fields
+            studio: category === 'anime' ? document.getElementById('studio').value.trim() : null,
+            episodes: category === 'anime' && document.getElementById('episodes').value ? parseInt(document.getElementById('episodes').value) : null,
+            seasons: category === 'anime' && document.getElementById('seasons').value ? parseInt(document.getElementById('seasons').value) : null,
+            season: category === 'anime' ? document.getElementById('season').value.trim() : null,
+            // General-specific fields
+            director: category === 'general' ? document.getElementById('director').value.trim() : null,
+            network: category === 'general' ? document.getElementById('network').value.trim() : null,
+            runtime: category === 'general' && document.getElementById('runtime').value ? parseInt(document.getElementById('runtime').value) : null,
+            releaseYear: category === 'general' && document.getElementById('releaseYear').value ? parseInt(document.getElementById('releaseYear').value) : null,
         };
 
         saveAnime(animeData);
     });
+
+    // Category change listener
+    document.getElementById('category').addEventListener('change', updateFormFieldsVisibility);
 
     // Recargar datos cuando la pestaña recupera el foco (para reflejar cambios externos al JSON)
     document.addEventListener('visibilitychange', async () => {
