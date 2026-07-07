@@ -585,19 +585,52 @@ function buildFilterMenus() {
         genreMenu.appendChild(extraContainer);
     }
 
-    // --- Tipos: extraer todos los tipos únicos de TODOS los animes ---
+    // --- Tipos: separar primarios (siempre visibles) vs secundarios (colapsados) ---
     const allTypes = new Set();
     animes.forEach(a => { if (a.type) allTypes.add(a.type); });
 
+    const primaryTypes = ['Serie', 'Película'];
+    const visibleTypes = primaryTypes.filter(t => allTypes.has(t));
+    const secondaryTypes = Array.from(allTypes).filter(t => !primaryTypes.includes(t)).sort();
+
     const typeMenu = document.getElementById('typeMenu');
     typeMenu.innerHTML = `<button class="${btnClass}" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>`;
-    Array.from(allTypes).sort().forEach(type => {
+
+    visibleTypes.forEach(type => {
         const btn = document.createElement('button');
         btn.className = btnClass;
         btn.onclick = () => selectFilter('type', type, type);
         btn.textContent = type;
         typeMenu.appendChild(btn);
     });
+
+    if (secondaryTypes.length > 0) {
+        const expandBtn = document.createElement('button');
+        expandBtn.id = 'typeExpandBtn';
+        expandBtn.className = `${btnClass} text-[#6366F1] font-semibold`;
+        expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver más (${secondaryTypes.length})`;
+        expandBtn.onclick = () => expandTypeMenu();
+        typeMenu.appendChild(expandBtn);
+
+        const extraContainer = document.createElement('div');
+        extraContainer.id = 'typeExtraContainer';
+        extraContainer.className = 'hidden flex-col';
+
+        const sectionHeader = document.createElement('div');
+        sectionHeader.className = 'px-4 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-500 font-semibold';
+        sectionHeader.textContent = 'Otros';
+        extraContainer.appendChild(sectionHeader);
+
+        secondaryTypes.forEach(type => {
+            const btn = document.createElement('button');
+            btn.className = btnClass;
+            btn.onclick = () => selectFilter('type', type, type);
+            btn.textContent = type;
+            extraContainer.appendChild(btn);
+        });
+
+        typeMenu.appendChild(extraContainer);
+    }
 }
 
 function expandGenreMenu() {
@@ -608,6 +641,20 @@ function expandGenreMenu() {
         extraContainer.classList.toggle('flex');
         if (extraContainer.classList.contains('hidden')) {
             expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver todos`;
+        } else {
+            expandBtn.innerHTML = `<i class="fa-solid fa-minus mr-2 text-xs"></i>Ver menos`;
+        }
+    }
+}
+
+function expandTypeMenu() {
+    const extraContainer = document.getElementById('typeExtraContainer');
+    const expandBtn = document.getElementById('typeExpandBtn');
+    if (extraContainer && expandBtn) {
+        extraContainer.classList.toggle('hidden');
+        extraContainer.classList.toggle('flex');
+        if (extraContainer.classList.contains('hidden')) {
+            expandBtn.innerHTML = `<i class="fa-solid fa-plus mr-2 text-xs"></i>Ver más`;
         } else {
             expandBtn.innerHTML = `<i class="fa-solid fa-minus mr-2 text-xs"></i>Ver menos`;
         }
