@@ -3,9 +3,11 @@ import socketserver
 import json
 import os
 import webbrowser
+import threading
 from threading import Timer
 
 MAX_PAYLOAD_BYTES = 1 * 1024 * 1024  # 1 MB
+file_lock = threading.Lock()
 
 # Mapa de normalización para campos de texto sin acento -> con acento
 TYPE_MAP = {
@@ -141,11 +143,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
-            if os.path.exists(DATA_FILE):
-                with open(DATA_FILE, 'rb') as f:
-                    self.wfile.write(f.read())
-            else:
-                self.wfile.write(b'[]')
+            with file_lock:
+                if os.path.exists(DATA_FILE):
+                    with open(DATA_FILE, 'rb') as f:
+                        self.wfile.write(f.read())
+                else:
+                    self.wfile.write(b'[]')
         else:
             # Sirve los archivos estáticos normales (index.html, app.js, etc.)
             if self.path == '/':
@@ -194,8 +197,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         return
                     cleaned_list.append(normalize_anime(cleaned))
 
-                with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(cleaned_list, f, ensure_ascii=False, indent=2)
+                with file_lock:
+                    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(cleaned_list, f, ensure_ascii=False, indent=2)
 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -205,11 +209,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             elif self.path == '/api/anime':
                 try:
                     new_anime = json.loads(post_data.decode('utf-8'))
-                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                except (json.JSONDecodeError, UnicodeDecodeError):
                     self.send_response(400)
                     self.send_header('Content-type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": f"Invalid JSON: {e}"}).encode('utf-8'))
+                    self.wfile.write(b'{"error": "Invalid JSON in request body"}')
                     return
 
                 cleaned, error = validate_anime(new_anime)
@@ -220,24 +224,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": error or "Validation failed"}).encode('utf-8'))
                     return
 
-                animes = []
-                if os.path.exists(DATA_FILE):
-                    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                        animes = json.load(f)
+                with file_lock:
+                    animes = []
+                    if os.path.exists(DATA_FILE):
+                        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                            animes = json.load(f)
 
-                # Verificar duplicado por id
-                existing_ids = [a.get('id') for a in animes]
-                if cleaned['id'] in existing_ids:
-                    self.send_response(409)
-                    self.send_header('Content-type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": f"Anime with id '{cleaned['id']}' already exists"}).encode('utf-8'))
-                    return
+                    # Verificar duplicado por id
+                    existing_ids = [a.get('id') for a in animes]
+                    if cleaned['id'] in existing_ids:
+                        self.send_response(409)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"error": f"Anime with id '{cleaned['id']}' already exists"}).encode('utf-8'))
+                        return
 
-                animes.append(normalize_anime(cleaned))
+                    animes.append(normalize_anime(cleaned))
 
-                with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(animes, f, ensure_ascii=False, indent=2)
+                    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(animes, f, ensure_ascii=False, indent=2)
 
                 self.send_response(201)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
@@ -249,10 +254,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
 
         except Exception as e:
+            print(f"[ERROR] POST handler: {e}")
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Internal server error: {e}"}).encode('utf-8'))
+            self.wfile.write(b'{"error": "Internal server error"}')
 
     def do_PUT(self):
         try:
@@ -277,11 +283,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if self.path == '/api/anime':
                 try:
                     update_data = json.loads(post_data.decode('utf-8'))
-                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                except (json.JSONDecodeError, UnicodeDecodeError):
                     self.send_response(400)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": f"Invalid JSON: {e}"}).encode('utf-8'))
+                    self.wfile.write(b'{"error": "Invalid JSON in request body"}')
                     return
 
                 if 'id' not in update_data or not isinstance(update_data['id'], str) or not update_data['id'].strip():
@@ -291,27 +297,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(b'{"error": "PUT requires a non-empty string id"}')
                     return
 
-                animes = []
-                if os.path.exists(DATA_FILE):
-                    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                        animes = json.load(f)
+                with file_lock:
+                    animes = []
+                    if os.path.exists(DATA_FILE):
+                        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                            animes = json.load(f)
 
-                found = False
-                for i, a in enumerate(animes):
-                    if a.get('id') == update_data['id']:
-                        animes[i] = normalize_anime({**a, **update_data})
-                        found = True
-                        break
+                    found = False
+                    for i, a in enumerate(animes):
+                        if a.get('id') == update_data['id']:
+                            animes[i] = normalize_anime({**a, **update_data})
+                            found = True
+                            break
 
-                if not found:
-                    self.send_response(404)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": f"Item with id '{update_data['id']}' not found"}).encode('utf-8'))
-                    return
+                    if not found:
+                        self.send_response(404)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"error": f"Item with id '{update_data['id']}' not found"}).encode('utf-8'))
+                        return
 
-                with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(animes, f, ensure_ascii=False, indent=2)
+                    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(animes, f, ensure_ascii=False, indent=2)
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -323,10 +330,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
 
         except Exception as e:
+            print(f"[ERROR] PUT handler: {e}")
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Internal server error: {e}"}).encode('utf-8'))
+            self.wfile.write(b'{"error": "Internal server error"}')
 
 def open_browser():
     webbrowser.open(f'http://localhost:{PORT}')

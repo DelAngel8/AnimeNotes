@@ -58,41 +58,41 @@
             <div class="flex bg-[#1E1B4B]/80 border border-indigo-900/50 rounded-full shadow-inner focus-within:border-[#4338CA] focus-within:ring-2 focus-within:ring-[#4338CA]/30 transition-all text-sm z-50">
                 <!-- Géneros Dropdown -->
                 <div class="relative flex items-center border-r border-indigo-900/50" id="genreFilterContainer">
-                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('genreMenu')">
+                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('genreMenu')" aria-expanded="false" aria-haspopup="listbox">
                         <i class="fa-solid fa-layer-group absolute left-3 text-gray-400 text-xs"></i>
                         <span id="genreSelectedText" class="truncate max-w-[100px] text-left">Géneros</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
                     <!-- Menú Géneros (generado dinámicamente desde JS) -->
-                    <div id="genreMenu" class="hidden absolute top-[120%] left-0 w-56 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-y-auto max-h-96 z-[60] flex-col py-2 backdrop-blur-md">
+                    <div id="genreMenu" class="hidden absolute top-[120%] left-0 w-56 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-y-auto max-h-96 z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Géneros">
                         <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>
                     </div>
                 </div>
 
                 <!-- Orden Dropdown -->
                 <div class="relative flex items-center border-r border-indigo-900/50" id="sortFilterContainer">
-                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('sortMenu')">
+                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('sortMenu')" aria-expanded="false" aria-haspopup="listbox">
                         <i class="fa-solid fa-arrow-down-wide-short absolute left-3 text-gray-400 text-xs"></i>
                         <span id="sortSelectedText" class="truncate max-w-[90px] text-left">Orden</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
                     <!-- Menú Orden -->
-                    <div id="sortMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md">
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('sort', 'default', 'Orden')">Por defecto</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('sort', 'rating_desc', 'Mejor valorados')">Mejor valorados</button>
-                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('sort', 'rating_asc', 'Peor valorados')">Peor valorados</button>
+                    <div id="sortMenu" class="hidden absolute top-[120%] left-0 w-48 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Orden">
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'default', 'Orden')">Por defecto</button>
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'rating_desc', 'Mejor valorados')">Mejor valorados</button>
+                        <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" role="option" onclick="selectFilter('sort', 'rating_asc', 'Peor valorados')">Peor valorados</button>
                     </div>
                 </div>
 
                 <!-- Formatos Dropdown -->
                 <div class="relative flex items-center" id="typeFilterContainer">
-                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('typeMenu')">
+                    <button type="button" class="flex items-center gap-2 bg-transparent text-gray-200 pl-8 pr-4 py-2 hover:text-white transition-colors outline-none cursor-pointer w-full h-full" onclick="toggleDropdown('typeMenu')" aria-expanded="false" aria-haspopup="listbox">
                         <i class="fa-solid fa-tv absolute left-3 text-gray-400 text-xs"></i>
                         <span id="typeSelectedText" class="truncate max-w-[90px] text-left">Formatos</span>
                         <i class="fa-solid fa-chevron-down text-gray-400 text-xs ml-1"></i>
                     </button>
                     <!-- Menú Formatos (generado dinámicamente desde JS) -->
-                    <div id="typeMenu" class="hidden absolute top-[120%] right-0 w-40 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md">
+                    <div id="typeMenu" class="hidden absolute top-[120%] right-0 w-40 bg-[#0F0F23] border border-indigo-900/50 rounded-xl shadow-2xl overflow-hidden z-[60] flex-col py-2 backdrop-blur-md" role="listbox" aria-label="Formatos">
                         <button class="text-left px-4 py-2 text-gray-300 hover:bg-[#4338CA] hover:text-white transition-colors" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>
                     </div>
                 </div>
@@ -291,7 +291,7 @@
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-semibold mb-1 text-gray-300">Calificación (0 a 10)</label>
                             <div class="flex items-center gap-4">
-                                <input type="number" id="rating" min="0" max="10" step="0.1" required class="w-24 bg-dark-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                                <input type="number" id="rating" min="0" max="10" step="0.1" class="w-24 bg-dark-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500">
                                 <div id="ratingPreview" class="text-sm font-bold text-gray-300"></div>
                             </div>
                         </div>

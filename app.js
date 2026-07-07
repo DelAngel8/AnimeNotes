@@ -5,7 +5,8 @@ function escapeHTML(str) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function escapeAttr(str) {
@@ -24,8 +25,18 @@ function escapeCSSUrl(url) {
     return String(url).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+// Debounce utility — delays function execution until after `delay` ms of inactivity
+function debounce(fn, delay) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
 // --- ALMACENAMIENTO Y ESTADO ---
 const STORAGE_KEY = 'animenotes_data';
+const MIGRATION_KEY = 'animenotes_demo_migrated';
 
 // Datos de demostración para la primera vez
 const now = Date.now();
@@ -150,14 +161,50 @@ function toggleDropdown(menuId) {
         // Cierra otros menus
         ['genreMenu', 'sortMenu', 'typeMenu'].forEach(id => {
             const m = document.getElementById(id);
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+            if (m) {
+                m.classList.add('hidden');
+                m.classList.remove('flex');
+                // Update aria-expanded on trigger button
+                const container = m.closest('.relative');
+                if (container) {
+                    const trigger = container.querySelector('button');
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                }
+            }
         });
         menu.classList.remove('hidden');
         menu.classList.add('flex');
+        // Update aria-expanded on trigger button
+        const container = menu.closest('.relative');
+        if (container) {
+            const trigger = container.querySelector('button');
+            if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        }
     } else {
         menu.classList.add('hidden');
         menu.classList.remove('flex');
+        // Update aria-expanded on trigger button
+        const container = menu.closest('.relative');
+        if (container) {
+            const trigger = container.querySelector('button');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
     }
+}
+
+function closeAllDropdowns() {
+    ['genreMenu', 'sortMenu', 'typeMenu'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m) {
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+            const container = m.closest('.relative');
+            if (container) {
+                const trigger = container.querySelector('button');
+                if (trigger) trigger.setAttribute('aria-expanded', 'false');
+            }
+        }
+    });
 }
 
 function selectFilter(filterType, value, label) {
@@ -171,8 +218,7 @@ function selectFilter(filterType, value, label) {
         currentSortFilter = value;
         document.getElementById('sortSelectedText').textContent = label;
     }
-    document.getElementById(filterType + 'Menu').classList.add('hidden');
-    document.getElementById(filterType + 'Menu').classList.remove('flex');
+    closeAllDropdowns();
     
     // Resetear el hero index al filtrar
     currentHeroIndex = 0;
@@ -216,14 +262,15 @@ async function loadData() {
             const data = await response.json();
             if (data && data.length > 0) {
                 animes = data.map(ensureGenres);
-                // PARCHE: Eliminar las pruebas de los 10 animes viejos y cargar las 2 peliculas
-                if (animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
+                // One-time migration: replace old demo entries with current demo data
+                if (!localStorage.getItem(MIGRATION_KEY) && animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
                     animes = [...demoData].map(ensureGenres);
-                    saveData();
+                    await saveData();
+                    localStorage.setItem(MIGRATION_KEY, '1');
                 }
             } else {
                 animes = [...demoData].map(ensureGenres);
-                saveData();
+                await saveData();
             }
             return; // Salimos de la función si el servidor respondió bien
         }
@@ -236,20 +283,21 @@ async function loadData() {
         const data = localStorage.getItem(STORAGE_KEY);
         if (data) {
             animes = JSON.parse(data).map(ensureGenres);
-            // PARCHE: Eliminar las pruebas de los 10 animes viejos y cargar las 2 peliculas
-            if (animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
+            // One-time migration: replace old demo entries with current demo data
+            if (!localStorage.getItem(MIGRATION_KEY) && animes.some(a => a.id === "demo_1" || a.id === "demo_10")) {
                 animes = [...demoData].map(ensureGenres);
-                saveData();
+                await saveData();
+                localStorage.setItem(MIGRATION_KEY, '1');
             }
         } else {
             animes = [...demoData].map(ensureGenres);
-            saveData();
+            await saveData();
         }
     } catch (e) {
         console.warn("localStorage corrupto. Limpiando y usando datos de demo.", e);
         localStorage.removeItem(STORAGE_KEY);
         animes = [...demoData].map(ensureGenres);
-        saveData();
+        await saveData();
     }
 }
 
@@ -277,7 +325,7 @@ function generateId() {
     return '_' + Math.random().toString(36).substr(2, 9);
 }
 
-function saveAnime(animeData) {
+async function saveAnime(animeData) {
     // Normalizar rating: si está vacío o es 0, queda como pendiente
     const ratingVal = animeData.rating;
     const normalizedRating = (ratingVal === '' || ratingVal === null || ratingVal === undefined || isNaN(ratingVal))
@@ -295,7 +343,7 @@ function saveAnime(animeData) {
         // Crear
         animes.unshift({ ...normalizedData, id: generateId(), updatedAt: Date.now() });
     }
-    saveData();
+    await saveData();
     closeModal('formModal');
     buildFilterMenus();
 
@@ -310,10 +358,10 @@ function saveAnime(animeData) {
     }
 }
 
-function deleteAnime(id) {
+async function deleteAnime(id) {
     if (confirm('¿Estás seguro de que quieres borrar este anime?')) {
         animes = animes.filter(a => a.id !== id);
-        saveData();
+        await saveData();
         closeModal('detailsModal');
         if (isPendingView) {
             renderPending();
@@ -446,7 +494,7 @@ function createPendingCard(anime) {
                 <!-- Top: tipo y estudio/director -->
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
-                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${getInfoBadge(anime)}</span>
+                    <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(getInfoBadge(anime))}</span>
                 </div>
                 <!-- Bottom: info principal -->
                 <div>
@@ -508,13 +556,14 @@ function buildFilterMenus() {
     const remainingGenres = sortedGenres.slice(8);
 
     const genreMenu = document.getElementById('genreMenu');
-    genreMenu.innerHTML = `<button class="${btnClass}" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>`;
+    genreMenu.innerHTML = `<button class="${btnClass}" role="option" onclick="selectFilter('genre', 'all', 'Géneros')">Todos los géneros</button>`;
     
     // Top genres (always visible)
     topGenres.forEach(genre => {
         const label = genre.length > 12 ? genre.slice(0, 10) + '.' : genre;
         const btn = document.createElement('button');
         btn.className = btnClass;
+        btn.setAttribute('role', 'option');
         btn.onclick = () => selectFilter('genre', genre, label);
         btn.textContent = genre;
         genreMenu.appendChild(btn);
@@ -544,6 +593,7 @@ function buildFilterMenus() {
             animeOnly.forEach(genre => {
                 const btn = document.createElement('button');
                 btn.className = btnClass;
+                btn.setAttribute('role', 'option');
                 btn.onclick = () => selectFilter('genre', genre, genre);
                 btn.textContent = genre;
                 extraContainer.appendChild(btn);
@@ -560,6 +610,7 @@ function buildFilterMenus() {
             generalOnly.forEach(genre => {
                 const btn = document.createElement('button');
                 btn.className = btnClass;
+                btn.setAttribute('role', 'option');
                 btn.onclick = () => selectFilter('genre', genre, genre);
                 btn.textContent = genre;
                 extraContainer.appendChild(btn);
@@ -576,6 +627,7 @@ function buildFilterMenus() {
             shared.forEach(genre => {
                 const btn = document.createElement('button');
                 btn.className = btnClass;
+                btn.setAttribute('role', 'option');
                 btn.onclick = () => selectFilter('genre', genre, genre);
                 btn.textContent = genre;
                 extraContainer.appendChild(btn);
@@ -594,11 +646,12 @@ function buildFilterMenus() {
     const secondaryTypes = Array.from(allTypes).filter(t => !primaryTypes.includes(t)).sort();
 
     const typeMenu = document.getElementById('typeMenu');
-    typeMenu.innerHTML = `<button class="${btnClass}" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>`;
+    typeMenu.innerHTML = `<button class="${btnClass}" role="option" onclick="selectFilter('type', 'all', 'Formatos')">Todos</button>`;
 
     visibleTypes.forEach(type => {
         const btn = document.createElement('button');
         btn.className = btnClass;
+        btn.setAttribute('role', 'option');
         btn.onclick = () => selectFilter('type', type, type);
         btn.textContent = type;
         typeMenu.appendChild(btn);
@@ -624,6 +677,7 @@ function buildFilterMenus() {
         secondaryTypes.forEach(type => {
             const btn = document.createElement('button');
             btn.className = btnClass;
+            btn.setAttribute('role', 'option');
             btn.onclick = () => selectFilter('type', type, type);
             btn.textContent = type;
             extraContainer.appendChild(btn);
@@ -885,7 +939,7 @@ function createGridContainer(title, animesList) {
                     <!-- Top: tipo y estudio/director -->
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
-                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${getInfoBadge(anime)}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(getInfoBadge(anime))}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
@@ -957,7 +1011,7 @@ function createCarouselRow(title, animesList, rowId) {
                     <!-- Top: tipo y estudio/director -->
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-white text-xs font-semibold bg-[#4f46e5]/80 px-2 py-0.5 rounded">${escapeHTML(anime.type)}</span>
-                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${getInfoBadge(anime)}</span>
+                        <span class="text-gray-300 text-xs bg-black/40 px-2 py-0.5 rounded">${escapeHTML(getInfoBadge(anime))}</span>
                     </div>
                     <!-- Bottom: info principal -->
                     <div>
@@ -1212,6 +1266,8 @@ function updateFormFieldsVisibility() {
     const seasonGroup = document.getElementById('seasonGroup');
     const statusGroup = document.getElementById('statusGroup');
 
+    const statusSelect = document.getElementById('status');
+
     if (category === 'anime') {
         // Anime: studio, episodes, seasons, season, status
         studioGroup.classList.remove('hidden');
@@ -1223,6 +1279,7 @@ function updateFormFieldsVisibility() {
         seasonsGroup.classList.remove('hidden');
         seasonGroup.classList.remove('hidden');
         statusGroup.classList.remove('hidden');
+        statusSelect.setAttribute('required', 'required');
     } else if (isMovie) {
         // Movie: director, runtime, releaseYear — NO episodes/seasons/status
         studioGroup.classList.add('hidden');
@@ -1234,6 +1291,7 @@ function updateFormFieldsVisibility() {
         seasonsGroup.classList.add('hidden');
         seasonGroup.classList.add('hidden');
         statusGroup.classList.add('hidden');
+        statusSelect.removeAttribute('required');
     } else {
         // Series: director, network, episodes, seasons, releaseYear — NO status/studio/runtime
         studioGroup.classList.add('hidden');
@@ -1245,6 +1303,7 @@ function updateFormFieldsVisibility() {
         seasonsGroup.classList.remove('hidden');
         seasonGroup.classList.add('hidden');
         statusGroup.classList.add('hidden');
+        statusSelect.removeAttribute('required');
     }
 }
 
@@ -1259,15 +1318,15 @@ function setupEventListeners() {
         }
     });
 
-    // Filtros y Búsqueda
-    document.getElementById('searchInput').addEventListener('input', () => {
+    // Filtros y Búsqueda (debounced to avoid full DOM rebuild per keystroke)
+    document.getElementById('searchInput').addEventListener('input', debounce(() => {
         if (isPendingView) {
             renderPending();
         } else {
             currentHeroIndex = 0;
             renderApp();
         }
-    });
+    }, 200));
 
     // Botón Pendientes
     document.getElementById('pendingBtn').addEventListener('click', () => {
@@ -1285,7 +1344,7 @@ function setupEventListeners() {
     document.getElementById('rating').addEventListener('input', updateRatingPreview);
 
     // Guardar Formulario
-    document.getElementById('animeForm').addEventListener('submit', (e) => {
+    document.getElementById('animeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
         // Parsear géneros (separados por coma a un array limpio)
@@ -1319,7 +1378,7 @@ function setupEventListeners() {
             releaseYear: category === 'general' && document.getElementById('releaseYear').value ? parseInt(document.getElementById('releaseYear').value) : null,
         };
 
-        saveAnime(animeData);
+        await saveAnime(animeData);
     });
 
     // Category change listener
@@ -1346,26 +1405,19 @@ function setupEventListeners() {
         if (e.target.id === 'detailsModal') closeModal('detailsModal');
         
         // Cerrar custom dropdowns si el clic no es dentro de su contenedor
-        if (!e.target.closest('#genreFilterContainer')) {
-            const genreMenu = document.getElementById('genreMenu');
-            if(genreMenu) {
-                genreMenu.classList.add('hidden');
-                genreMenu.classList.remove('flex');
-            }
+        if (!e.target.closest('#genreFilterContainer') &&
+            !e.target.closest('#sortFilterContainer') &&
+            !e.target.closest('#typeFilterContainer')) {
+            closeAllDropdowns();
         }
-        if (!e.target.closest('#sortFilterContainer')) {
-            const sortMenu = document.getElementById('sortMenu');
-            if(sortMenu) {
-                sortMenu.classList.add('hidden');
-                sortMenu.classList.remove('flex');
-            }
-        }
-        if (!e.target.closest('#typeFilterContainer')) {
-            const typeMenu = document.getElementById('typeMenu');
-            if(typeMenu) {
-                typeMenu.classList.add('hidden');
-                typeMenu.classList.remove('flex');
-            }
+    });
+
+    // Cerrar dropdowns con Escape y navegación con teclado
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAllDropdowns();
+            closeModal('formModal');
+            closeModal('detailsModal');
         }
     });
 }
