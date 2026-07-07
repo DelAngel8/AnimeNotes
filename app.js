@@ -102,7 +102,8 @@ function ensureGenres(anime) {
 
 // Get subtitle text based on category (studio for anime, director/network for general)
 function getSubtitle(anime) {
-    if (anime.category === 'general') {
+    const cat = anime.category || 'anime';
+    if (cat === 'general') {
         const isMovie = anime.type === 'Película';
         const parts = [];
         if (anime.director) parts.push(anime.director);
@@ -115,7 +116,8 @@ function getSubtitle(anime) {
 
 // Get the info badge text based on category
 function getInfoBadge(anime) {
-    if (anime.category === 'general') {
+    const cat = anime.category || 'anime';
+    if (cat === 'general') {
         const parts = [];
         if (anime.director) parts.push(anime.director);
         if (anime.network) parts.push(anime.network);
@@ -395,11 +397,14 @@ function renderPending() {
             const matchSearch = !search ||
                 anime.title.toLowerCase().includes(search) ||
                 (anime.genres || []).join(' ').toLowerCase().includes(search) ||
-                (anime.studio && anime.studio.toLowerCase().includes(search));
+                (anime.studio && anime.studio.toLowerCase().includes(search)) ||
+                (anime.director && anime.director.toLowerCase().includes(search)) ||
+                (anime.network && anime.network.toLowerCase().includes(search));
             const matchType = currentTypeFilter === 'all' || anime.type === currentTypeFilter;
             const matchGenre = currentGenreFilter === 'all' ||
                 ((anime.genres || []).map(normalizeGenre).includes(currentGenreFilter));
-            return matchSearch && matchType && matchGenre;
+            const matchCategory = currentCategoryFilter === 'all' || (anime.category || 'anime') === currentCategoryFilter;
+            return matchSearch && matchType && matchGenre && matchCategory;
         })
         .sort((a, b) => b.updatedAt - a.updatedAt);
     const grid = document.getElementById('pendingGrid');
@@ -477,7 +482,7 @@ function buildFilterMenus() {
         if (!a.genres) return;
         a.genres.forEach(g => {
             const normalized = normalizeGenre(g);
-            if (a.category === 'general') {
+            if ((a.category || 'anime') === 'general') {
                 generalGenres.add(normalized);
             } else {
                 animeGenres.add(normalized);
@@ -1033,7 +1038,8 @@ function openDetailsModal(id) {
     
     // Show studio for anime, director/network for general
     const detailStudio = document.getElementById('detailStudio');
-    if (anime.category === 'general') {
+    const cat = anime.category || 'anime';
+    if (cat === 'general') {
         const parts = [];
         if (anime.director) parts.push(anime.director);
         if (anime.network) parts.push(anime.network);
@@ -1065,9 +1071,10 @@ function openDetailsModal(id) {
     const extraFieldsEl = document.getElementById('detailExtraFields');
     extraFieldsEl.innerHTML = '';
     
-    const isMovie = anime.category === 'general' && anime.type === 'Película';
+    const catDetail = anime.category || 'anime';
+    const isMovie = catDetail === 'general' && anime.type === 'Película';
     
-    if (anime.category === 'general' && isMovie) {
+    if (catDetail === 'general' && isMovie) {
         // Movie fields
         if (anime.director) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Director:</span> <span class="text-white">${escapeHTML(anime.director)}</span></div>`;
@@ -1078,7 +1085,7 @@ function openDetailsModal(id) {
         if (anime.releaseYear) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Año:</span> <span class="text-white">${escapeHTML(anime.releaseYear)}</span></div>`;
         }
-    } else if (anime.category === 'general' && !isMovie) {
+    } else if (catDetail === 'general' && !isMovie) {
         // Series fields
         if (anime.director) {
             extraFieldsEl.innerHTML += `<div><span class="text-gray-500">Creador:</span> <span class="text-white">${escapeHTML(anime.director)}</span></div>`;
