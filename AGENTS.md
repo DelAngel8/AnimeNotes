@@ -1,4 +1,6 @@
-# AnimeNotes - Coding Standards
+# MediaNotes - Coding Standards
+
+> Proyecto expandido: Anime + Películas + Series
 
 ## Arquitectura y Tecnología
 - HTML5 Semántico
@@ -30,6 +32,12 @@
 - Opciones de búsqueda de información e imágenes para cuando el usuario solicite agregar nuevos animes:
   1. **Opción Primaria:** API de Jikan (MyAnimeList). Endpoint de búsqueda: `https://api.jikan.moe/v4/anime?q={titulo}`. Extraer el título, sinopsis, géneros, estudio, estado y la imagen de alta calidad desde `images.jpg.large_image_url`.
   2. **Opción Secundaria:** TMDB (The Movie Database) o AniList. Utilizar solo si la API de Jikan falla o el anime no se encuentra disponible ahí.
+
+## Fuentes de Datos y Contenido (Películas y Series)
+- Opciones de búsqueda de información e imágenes para contenido general (películas, series de acción real, animación occidental):
+  1. **Opción Primaria:** TMDB API (The Movie Database). Endpoint de búsqueda: `https://api.jikan.moe/v4/` → NO, usar `https://api.themoviedb.org/3/search/movie?query={titulo}&api_key={key}` o `/search/tv?query={titulo}&api_key={key}`. Extraer: título, sinopsis, géneros, director (películas) o red/creador (series), duración, imagen de alta calidad desde `poster_path` (prefijo: `https://image.tmdb.org/t/p/w500`).
+  2. **Opción Secundaria:** OMDb API. Endpoint: `https://www.omdbapi.com/?t={titulo}&apikey={key}`. Utilizar solo si TMDB falla.
+- **Nota:** Se necesita una API key de TMDB (gratuita, registro en themoviedb.org) y opcionalmente de OMDb.
 
 ## Flujo para Agregar Animes (OBLIGATORIO)
 
@@ -80,3 +88,69 @@
    - `409` — el `id` ya existe → ajustar el `id` y reintentar
    - `400` — faltan campos `id` o `title`
    - Error de conexión — el servidor no está corriendo, informar al usuario
+
+## Modelo de Datos Unificado
+
+Todos los items (anime, películas, series) comparten un esquema común con campos específicos por tipo:
+
+```json
+{
+  "id": "{titulo_en_snake_case}",
+  "title": "Título oficial",
+  "image": "https://...",
+  "type": "TV | ONA | OVA | Película | Serie",
+  "genres": ["Acción", "Comedia"],
+  "rating": 8.5,
+  "synopsis": "Sinopsis...",
+  "review": "",
+  "updatedAt": 1234567890,
+  "category": "anime | general",
+  "studio": "Estudio (anime) | null",
+  "director": "Director (películas) | null",
+  "network": "Netflix, Disney+, HBO... (series) | null",
+  "episodes": 24,
+  "seasons": 3,
+  "season": "2024",
+  "runtime": 120
+}
+```
+
+> **Regla de `category`**: Campo obligatorio. `"anime"` para contenido de Jikan, `"general"` para TMDB/OMDb. El filtro de UI usa este campo para separar "Anime" vs "General".
+
+## Flujo para Agregar Películas/Series (OBLIGATORIO)
+
+### Reglas absolutas
+- Mismas reglas que anime: NUNCA editar `datos.json`, SIEMPRE usar `POST /api/anime`.
+
+### Pasos
+
+1. **Buscar en TMDB** via WebFetch:
+   - Películas: `GET https://api.themoviedb.org/3/search/movie?query={titulo}&api_key={key}`
+   - Series: `GET https://api.themoviedb.org/3/search/tv?query={titulo}&api_key={key}`
+
+2. **Construir el objeto** con `category: "general"` y campos específicos:
+   ```json
+   {
+     "id": "{titulo_en_snake_case}",
+     "title": "Título oficial en español",
+     "image": "https://image.tmdb.org/t/p/w500{poster_path}",
+     "type": "Película | Serie",
+     "genres": "{genre_ids → nombres}",
+     "rating": {nota_del_usuario},
+     "synopsis": "Sinopsis traducida al español",
+     "review": "",
+     "updatedAt": {timestamp_unix_ms_real},
+     "category": "general",
+     "studio": null,
+     "director": "{director_name} | null",
+     "network": "{networks[0].name} | null",
+     "episodes": {number_of_episodes} | null,
+     "seasons": {number_of_seasons} | null,
+     "season": "{first_air_date year} | null",
+     "runtime": {runtime} | null
+   }
+   ```
+
+3. **Enviar via Bash** — mismo proceso que anime (curl, NO Invoke-RestMethod).
+
+4. **Verificar respuesta** — mismos códigos que anime.
