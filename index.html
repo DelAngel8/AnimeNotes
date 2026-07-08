@@ -104,6 +104,10 @@
                 <span id="pendingCount" class="hidden bg-[#82aaff] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none"></span>
             </button>
 
+            <button id="searchTMDBBtn" class="bg-[#7e57c2] hover:bg-[#6a4aa8] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-globe"></i> Buscar en TMDB
+            </button>
+
             <button id="addAnimeBtn" class="bg-[#82aaff] hover:bg-[#5472b3] text-white font-semibold py-2 px-5 rounded-full transition-all duration-200 shadow-lg hover:shadow-brand-500/25 flex items-center transform hover:scale-105">
                 <i class="fa-solid fa-plus mr-2"></i> Añadir
             </button>
@@ -384,6 +388,52 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TMDB Search Modal -->
+    <div id="searchModal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-dark-800 rounded-md w-full max-w-3xl relative my-8 animate-fade-in border border-dark-700">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-white" onclick="closeModal('searchModal')">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+            <div class="p-6 md:p-8">
+                <h2 class="text-2xl font-bold mb-2 text-white">Buscar en TMDB</h2>
+                <p class="text-gray-400 text-sm mb-6">Busca películas y series para añadir a tu colección</p>
+                
+                <!-- Search Input -->
+                <div class="flex gap-3 mb-6">
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="tmdbSearchInput" placeholder="Ej: Breaking Bad, Spider-Man, Naruto..." 
+                            class="w-full bg-dark-700 border border-gray-600 rounded pl-11 pr-4 py-3 text-white focus:outline-none focus:border-brand-500 text-lg"
+                            onkeypress="if(event.key==='Enter') searchTMDB()">
+                    </div>
+                    <select id="tmdbSearchType" class="bg-dark-700 border border-gray-600 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-500">
+                        <option value="multi">Todo</option>
+                        <option value="movie">Películas</option>
+                        <option value="tv">Series</option>
+                    </select>
+                    <button onclick="searchTMDB()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 px-6 rounded transition flex items-center gap-2">
+                        <i class="fa-solid fa-search"></i> Buscar
+                    </button>
+                </div>
+
+                <!-- Loading -->
+                <div id="tmdbLoading" class="hidden text-center py-8">
+                    <i class="fa-solid fa-spinner fa-spin text-4xl text-brand-500 mb-4"></i>
+                    <p class="text-gray-400">Buscando en TMDB...</p>
+                </div>
+
+                <!-- Results -->
+                <div id="tmdbResults" class="space-y-3 max-h-96 overflow-y-auto"></div>
+
+                <!-- Empty state -->
+                <div id="tmdbEmptyState" class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-film text-5xl mb-4 text-brand-500/30"></i>
+                    <p>Escribe un título y presiona Buscar</p>
                 </div>
             </div>
         </div>

@@ -5,6 +5,10 @@ import os
 import webbrowser
 import threading
 from threading import Timer
+import urllib.request
+import urllib.parse
+import urllib.error
+import ssl
 
 MAX_PAYLOAD_BYTES = 1 * 1024 * 1024  # 1 MB
 file_lock = threading.Lock()
@@ -128,6 +132,11 @@ def validate_anime(data):
 
     return data, None
 
+TMDB_API_KEY = os.environ.get('TMDB_API_KEY', '326c1e40ed24f0abf016921542efceca')
+TMDB_BASE_URL = 'https://api.themoviedb.org/3'
+TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/original'
+SSL_CTX = ssl.create_default_context()
+
 PORT = 8000
 DATA_FILE = 'datos.json'
 
@@ -149,11 +158,115 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         self.wfile.write(f.read())
                 else:
                     self.wfile.write(b'[]')
+
+        elif self.path.startswith('/api/search'):
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path == '/api/search':
+                self.handle_search()
+            else:
+                self._send_json(404, '{"error": "Not found"}')
+
         else:
             # Sirve los archivos estáticos normales (index.html, app.js, etc.)
             if self.path == '/':
                 self.path = '/index.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
+
+    def handle_search(self):
+        """Busca películas/series en TMDB."""
+        try:
+            parsed_url = urllib.parse.urlparse(self.path)
+            params = urllib.parse.parse_qs(parsed_url.query)
+            query = params.get('q', [None])[0]
+            media_type = params.get('type', ['multi'])[0]  # multi, movie, tv
+
+            if not query or not query.strip():
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(b'{"error": "Missing query parameter q"}')
+                return
+
+            if len(query) > 500:
+                self._send_json(400, '{"error": "Query too long (max 500 chars)"}')
+                return
+
+            # Construir URL de TMDB
+            if media_type == 'movie':
+                tmdb_url = f"{TMDB_BASE_URL}/search/movie?query={urllib.parse.quote(query)}&api_key={TMDB_API_KEY}&language=es-ES"
+            elif media_type == 'tv':
+                tmdb_url = f"{TMDB_BASE_URL}/search/tv?query={urllib.parse.quote(query)}&api_key={TMDB_API_KEY}&language=es-ES"
+            else:
+                tmdb_url = f"{TMDB_BASE_URL}/search/multi?query={urllib.parse.quote(query)}&api_key={TMDB_API_KEY}&language=es-ES"
+
+            # Llamar a TMDB
+            req = urllib.request.Request(tmdb_url, headers={'User-Agent': 'MediaNotes/1.0'})
+            with urllib.request.urlopen(req, timeout=10, context=SSL_CTX) as response:
+                raw = response.read()
+                data = json.loads(raw.decode('utf-8'))
+
+            print(f"[SEARCH] OK query='{query}' type='{media_type}' results={len(data.get('results', []))}")
+
+            # Formatear resultados
+            results = []
+            for item in data.get('results', [])[:10]:  # Max 10 resultados
+                media = item.get('media_type', media_type)
+                if media == 'person':
+                    continue
+
+                title = item.get('title') or item.get('name', 'Sin título')
+                poster = item.get('poster_path')
+                image = f"{TMDB_IMAGE_BASE}{poster}" if poster else ''
+                overview = item.get('overview', '')
+
+                genre_ids = item.get('genre_ids', [])
+
+                if media == 'movie':
+                    item_type = 'Película'
+                    release_date = item.get('release_date', '')
+                    year = release_date[:4] if release_date else None
+                else:
+                    item_type = 'Serie'
+                    first_air = item.get('first_air_date', '')
+                    year = first_air[:4] if first_air else None
+
+                results.append({
+                    'tmdb_id': item.get('id'),
+                    'title': title,
+                    'image': image,
+                    'type': item_type,
+                    'synopsis': overview,
+                    'year': year,
+                    'genre_ids': genre_ids,
+                    'media_type': media,
+                    'vote_average': item.get('vote_average', 0),
+                })
+
+            payload = json.dumps({'results': results}, ensure_ascii=False).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        except urllib.error.URLError as e:
+            print(f"[ERROR] TMDB request failed: {e}")
+            self._send_json(502, '{"error": "Failed to connect to TMDB"}')
+        except Exception as e:
+            print(f"[ERROR] Search handler: {e}")
+            self._send_json(500, '{"error": "Internal server error"}')
+
+    def _send_json(self, code, body):
+        """Helper para enviar JSON de forma segura."""
+        try:
+            payload = body.encode('utf-8') if isinstance(body, str) else body
+            self.send_response(code)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+        except Exception as e:
+            print(f"[WARN] _send_json failed: {e}")
 
     def do_POST(self):
         try:
@@ -341,7 +454,7 @@ def open_browser():
 
 if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    with socketserver.ThreadingTCPServer(("", PORT), Handler) as httpd:
         print(f"Servidor iniciado. Tus datos se guardarán en la carpeta del proyecto.")
         print(f"Abre tu navegador en: http://localhost:{PORT}")
         Timer(1, open_browser).start()

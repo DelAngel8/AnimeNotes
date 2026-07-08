@@ -1340,6 +1340,22 @@ function setupEventListeners() {
     // Botón Añadir
     document.getElementById('addAnimeBtn').addEventListener('click', () => openFormModal());
 
+    // Botón Buscar TMDB
+    document.getElementById('searchTMDBBtn').addEventListener('click', () => {
+        // Reset modal state and search flag
+        tmdbSearching = false;
+        document.getElementById('tmdbResults').innerHTML = '';
+        document.getElementById('tmdbLoading').classList.add('hidden');
+        const emptyEl = document.getElementById('tmdbEmptyState');
+        emptyEl.innerHTML = '<i class="fa-solid fa-film text-5xl mb-4 text-brand-500/30"></i><p>Escribe un título y presiona Buscar</p>';
+        emptyEl.classList.remove('hidden');
+        document.getElementById('tmdbSearchInput').value = '';
+        
+        document.getElementById('searchModal').classList.remove('hidden');
+        document.getElementById('searchModal').classList.add('flex');
+        document.getElementById('tmdbSearchInput').focus();
+    });
+
     // Rating Preview (Al escribir o cambiar)
     document.getElementById('rating').addEventListener('input', updateRatingPreview);
 
@@ -1403,6 +1419,7 @@ function setupEventListeners() {
     window.addEventListener('click', (e) => {
         if (e.target.id === 'formModal') closeModal('formModal');
         if (e.target.id === 'detailsModal') closeModal('detailsModal');
+        if (e.target.id === 'searchModal') closeModal('searchModal');
         
         // Cerrar custom dropdowns si el clic no es dentro de su contenedor
         if (!e.target.closest('#genreFilterContainer') &&
@@ -1418,9 +1435,136 @@ function setupEventListeners() {
             closeAllDropdowns();
             closeModal('formModal');
             closeModal('detailsModal');
+            closeModal('searchModal');
         }
     });
 }
+
+// --- BÚSQUEDA TMDB ---
+let tmdbGenreCache = {};
+let tmdbSearching = false;
+
+async function searchTMDB() {
+    if (tmdbSearching) return;
+    
+    const query = document.getElementById('tmdbSearchInput').value.trim();
+    const type = document.getElementById('tmdbSearchType').value;
+    
+    if (!query) return;
+
+    tmdbSearching = true;
+
+    const loadingEl = document.getElementById('tmdbLoading');
+    const resultsEl = document.getElementById('tmdbResults');
+    const emptyEl = document.getElementById('tmdbEmptyState');
+
+    loadingEl.classList.remove('hidden');
+    resultsEl.innerHTML = '';
+    emptyEl.classList.add('hidden');
+
+    try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}`);
+        if (!response.ok) throw new Error('Search failed');
+        
+        const data = await response.json();
+        const results = data.results || [];
+
+        loadingEl.classList.add('hidden');
+
+        if (results.length === 0) {
+            emptyEl.innerHTML = '<i class="fa-solid fa-face-sad-tear text-5xl mb-4 text-brand-500/30"></i><p>No se encontraron resultados</p>';
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        results.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'flex gap-4 p-3 bg-dark-700/50 rounded-lg border border-dark-700 hover:border-brand-500/50 transition-all cursor-pointer';
+            card.onclick = () => selectTMDBResult(item);
+            
+            const yearText = item.year ? ` (${item.year})` : '';
+            const ratingText = item.vote_average ? `★ ${item.vote_average.toFixed(1)}` : '';
+            const typeLabel = item.type === 'Película' ? 'Película' : 'Serie';
+            
+            card.innerHTML = `
+                <img src="${escapeAttr(item.image || '')}" alt="${escapeAttr(item.title)}" 
+                    class="w-16 h-24 object-cover rounded flex-shrink-0"
+                    onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2764%27 height=%2796%27 fill=%27%231a1a2e%27%3E%3Crect width=%2764%27 height=%2796%27/%3E%3Ctext x=%2732%27 y=%2748%27 font-family=%27sans-serif%27 font-size=%2710%27 fill=%27%23666%27 text-anchor=%27middle%27%3ESin img%3C/text%3E%3C/svg%3E'">
+                <div class="flex-grow min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-bold px-2 py-0.5 rounded ${item.type === 'Película' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}">${typeLabel}</span>
+                        ${ratingText ? `<span class="text-xs text-yellow-400 font-semibold">${ratingText}</span>` : ''}
+                    </div>
+                    <h4 class="font-bold text-white truncate">${escapeHTML(item.title)}${escapeHTML(yearText)}</h4>
+                    <p class="text-xs text-gray-400 line-clamp-2 mt-1">${escapeHTML(item.synopsis || 'Sin sinopsis')}</p>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa-solid fa-plus-circle text-brand-500 text-2xl hover:text-brand-400 transition"></i>
+                </div>
+            `;
+            resultsEl.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('TMDB search error:', error);
+        loadingEl.classList.add('hidden');
+        emptyEl.innerHTML = '<i class="fa-solid fa-exclamation-triangle text-5xl mb-4 text-red-500/50"></i><p>Error al buscar. Intenta de nuevo.</p>';
+        emptyEl.classList.remove('hidden');
+    } finally {
+        tmdbSearching = false;
+    }
+}
+
+async function selectTMDBResult(item) {
+    closeModal('searchModal');
+    
+    // Reset editing state — this is always a NEW item
+    currentEditingId = null;
+    
+    // Pre-llenar el formulario con los datos de TMDB
+    const form = document.getElementById('animeForm');
+    form.reset();
+    
+    document.getElementById('title').value = item.title;
+    document.getElementById('image').value = item.image;
+    document.getElementById('synopsis').value = item.synopsis || '';
+    
+    // Determinar categoría y tipo
+    if (item.type === 'Película') {
+        document.getElementById('category').value = 'general';
+        document.getElementById('type').value = 'Película';
+        if (item.year) document.getElementById('releaseYear').value = item.year;
+    } else {
+        document.getElementById('category').value = 'general';
+        document.getElementById('type').value = 'Serie';
+        if (item.year) document.getElementById('releaseYear').value = item.year;
+    }
+    
+    // Géneros (los IDs se mapean en frontend)
+    if (item.genre_ids && item.genre_ids.length > 0) {
+        const genreNames = item.genre_ids.map(id => TMDB_GENRE_MAP[id]).filter(Boolean);
+        if (genreNames.length > 0) {
+            document.getElementById('genres').value = genreNames.join(', ');
+        }
+    }
+    
+    updateFormFieldsVisibility();
+    document.getElementById('formModal').classList.remove('hidden');
+    document.getElementById('formModal').classList.add('flex');
+}
+
+// Mapeo de IDs de géneros TMDB a nombres
+const TMDB_GENRE_MAP = {
+    28: 'Acción', 12: 'Aventura', 16: 'Animación', 35: 'Comedia',
+    80: 'Crimen', 99: 'Documental', 18: 'Drama', 10751: 'Familiar',
+    14: 'Fantasía', 36: 'Historia', 27: 'Terror', 10402: 'Música',
+    9648: 'Misterio', 10749: 'Romance', 878: 'Ciencia ficción', 10770: 'TV Movie',
+    53: 'Suspense', 10752: 'Bélico', 37: 'Western',
+    // TV genres
+    10759: 'Acción y aventura', 10762: 'Infantil', 10763: 'Noticias',
+    10764: 'Reality', 10765: 'Ciencia ficción y fantasía', 10766: 'Soap',
+    10767: 'Talk', 10768: 'Guerra y política'
+};
 
 // --- ARRANQUE ---
 document.addEventListener('DOMContentLoaded', init);
